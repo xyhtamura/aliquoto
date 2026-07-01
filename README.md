@@ -1,4 +1,4 @@
-# Aliquot
+# aliquoto
 
 **Additive dequantizer — the spectrum before the synth.**
 
@@ -8,11 +8,11 @@ irrational, prime, or **below** the fundamental (subharmonic). The spectrum is w
 as **mathematics** (summations, envelopes, conditionals) rather than drawn or dialed,
 and the math is kept visible, not hidden inside an engine.
 
-*Aliquot* = a part contained in a whole an exact number of times (a divisor/multiple);
-also the *aliquot strings* of pianos and harps that ring in sympathetic overtones.
+*aliquoto* = a part contained in a whole an exact number of times (a divisor/multiple);
+also the *aliquoto strings* of pianos and harps that ring in sympathetic overtones.
 
 Sibling to **Cycla** (`../tabota/cycla_builder.html`): Cycla is a tuning of *meter*
-(recursive subdivision); Aliquot is a tuning of *timbre* (the sum of sines). Same
+(recursive subdivision); aliquoto is a tuning of *timbre* (the sum of sines). Same
 counter-poetics — both work the interstitial positions a standard grid disallows
 (12-TET for pitch, integer harmonics for timbre).
 
@@ -26,7 +26,7 @@ before any synthesizer-ish processing. So:
 - **The equation is the interface.** You type spectra; the tool renders the LaTeX,
   plots the envelope, and tabulates every computed partial (the `ƒ math` card).
 - **The core stays pure.** No FM, no filters, no unison, no fx. Those belong downstream
-  in an external chain. Aliquot only makes sines and sums them.
+  in an external chain. aliquoto only makes sines and sums them.
 - **Dequantize.** Arbitrary ratios, subharmonics, inharmonic and irrational series,
   and per-partial drift exist to escape the integer-harmonic lattice most additive
   synths are locked to.
