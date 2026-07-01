@@ -9,15 +9,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<!-- vendored Tabota resolver (classic script; self-registers window.TabotaResolve; loads from file://) -->
+<script src="./tabota-resolve.js"></script>
 <style>
+
+@font-face {
+  font-family: 'Seona-DEMO';
+  src: url('Seona-DEMO.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root{
   --bg:#b9c67c; --lcd-paper:#cfd99a; --lcd-sunk:#a9b86c; --lcd-stain:#76884d;
   --panel:#d7e3a2; --panel2:#bfcc83; --raise:#e2ecad;
   --edge:#58663f; --edge2:#263425; --ink:#101b15; --dim:#344333; --faint:#66724d;
   --lcd-bg:#c6d28e; --lcd:#102318; --lcd-dim:#415638;
   --cyan:#005e68; --violet:#382d6a; --magenta:#8c1748; --amber:#8a4b12; --lime:#284b19;
-  --disp:"Space Grotesk",system-ui,sans-serif; --mono:"Space Mono",ui-monospace,monospace; --lcdf:"VT323",monospace;
+--disp: "Seona-DEMO", "Space Grotesk", system-ui, sans-serif; 
+  --mono: "Space Mono", ui-monospace, monospace; 
+  --lcdf: "VT323", monospace;
 }
+
 *{box-sizing:border-box}
 html,body{height:100%}
 body{ margin:0; font-family:var(--mono); color:var(--ink); background:var(--bg);
@@ -40,8 +53,12 @@ header{ position:relative; display:flex; align-items:center; gap:16px; flex-wrap
   background:linear-gradient(180deg,#e0e9ad,#b7c677 82%,#93a35f);
   box-shadow:inset 0 -1px 0 #edf5bd, 0 7px 22px -18px #101b15; }
 .brand{ font-family:var(--disp); font-weight:700; font-size:23px; letter-spacing:.04em; color:var(--ink);
-  text-transform:uppercase; text-shadow:0 1px 0 #eaf3ba; }
-.brand b{ color:var(--magenta); text-shadow:0 0 1px #8c1748; }
+ text-shadow:0 1px 0 #eaf3ba; }
+.brand .brand-mark{ display:inline-flex; gap:1px; margin-right:3px; color:var(--magenta); text-shadow:none; }
+.brand .brand-mark span{ display:inline-block; text-shadow:0 0 1px currentColor; }
+.brand .brand-mark span:nth-child(1){ color:var(--cyan); }
+.brand .brand-mark span:nth-child(2){ color:var(--violet); }
+.brand .brand-mark span:nth-child(3){ color:var(--magenta); }
 .tag{ font-size:10.5px; color:var(--dim); letter-spacing:.16em; text-transform:uppercase }
 .firmware{ font-family:var(--lcdf); font-size:16px; color:var(--ink); letter-spacing:.08em;
   border:1px solid #65724b; background:#c7d491; padding:1px 7px;
@@ -171,16 +188,31 @@ table.tbl th{ position:sticky; top:0; text-align:right; color:#dce9a7; border-bo
 table.tbl td{ text-align:right; color:var(--ink); padding:2px 12px; border-bottom:1px solid #8a9a60 }
 table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
 .tblWrap{ max-height:50vh; overflow:auto; border:2px solid var(--edge2); border-radius:4px; background:var(--lcd-bg) }
+.tabjson{ max-height:52vh; overflow:auto; margin:10px 0 0; padding:12px 14px; font-family:var(--mono); font-size:11.5px; line-height:1.5;
+  color:var(--lcd); background:var(--lcd-bg); border:2px solid var(--edge2); border-radius:4px; white-space:pre; box-shadow:inset 0 11px 24px #73824e33; }
+.tabcopy{ cursor:pointer; color:var(--cyan); border:1px solid var(--edge2); border-radius:3px; padding:0 6px; margin-left:6px; white-space:nowrap }
+.tabcopy:hover{ color:var(--magenta); border-color:var(--magenta) }
+.surfchips{ display:inline-flex; gap:5px; margin-left:6px; vertical-align:middle }
+.surfchips .sc{ font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:#dce9a7;
+  background:linear-gradient(180deg,#25372b,#111d16); border:1px solid #07110b; border-radius:3px; padding:3px 9px; cursor:pointer;
+  box-shadow:inset 0 1px 0 #546849, 0 1px 0 #edf5bd; }
+.surfchips .sc.on{ background:linear-gradient(180deg,#a7bb6b,#64733e); color:#0a170f; border-color:#263425 }
+#surfaceCanvas{ display:none; width:100%; height:150px; touch-action:none; cursor:crosshair; border-radius:3px }
 ::-webkit-scrollbar{ width:11px;height:11px } ::-webkit-scrollbar-thumb{ background:var(--edge2); border-radius:3px; border:2px solid var(--panel2) } ::-webkit-scrollbar-track{ background:#b6c477 }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><b>◈</b> aliquoto</div>
-  <span class="tag">pure additive · arbitrary ratios · the spectrum before the synth</span>
-  <span class="firmware">BATHYCALC-89 // ROM ABYSS.1</span>
+<!--比琴-->
+  <div class="brand"><b class="brand-mark"><span>/</span><span>/</span><span>/</span></b> Aliquoto</div>
+  <span class="tag">pure additive · arbitrary ratios</span>
+  <span class="firmware">tabota enabled</span>
   <span class="grow"></span>
+  <span id="tabUpd" class="firmware" title="a newer canonical tabota-resolve.js exists — re-vendor" hidden>resolver ✱</span>
   <span id="midiStat">MIDI —</span>
+  <input type="file" id="tabFile" accept=".tabota,.tab,.json,application/json" hidden>
+  <button class="hbtn" id="tabImport" title="import a .tabota score (drag-drop also works)">⤒ .tabota</button>
+  <button class="hbtn" id="tabPlay" hidden>▶ score</button>
   <button class="hbtn" id="mathBtn">ƒ math</button>
   <button class="hbtn" id="startBtn">▶ enable audio</button>
 </header>
@@ -234,8 +266,16 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
     <div class="screen" id="specCard"><div class="cap">SPECTRUM <span class="hint">· log₂ ratio axis · drag partial = amp</span></div><canvas id="spec"></canvas></div>
     <div class="screen" id="waveCard"><div class="cap">WAVE <span class="hint">· Σ aₙ sin(2π rₙ t + φₙ) · live=magenta</span></div><canvas id="wave"></canvas></div>
     <div class="readout" id="readout"></div>
-    <div class="seclabel">keyboard <span style="text-transform:none;letter-spacing:0;color:var(--faint)">— click · QWERTY a s d f… (z/x oct) · MIDI</span></div>
-    <div class="screen" style="padding:8px 10px"><div id="kbWrap"><div id="keyboard"></div></div></div>
+    <div class="seclabel">interface <span id="surfChips" class="surfchips"></span></div>
+    <div class="row" id="surfCtl" style="gap:10px">
+      <label class="field">EDO <input type="number" id="edo" value="12" min="1" max="96" style="width:56px"></label>
+      <span id="surfCtlExtra" class="row" style="gap:10px"></span>
+      <span class="help" id="surfHint" style="flex:1;margin:0;min-width:120px"></span>
+    </div>
+    <div class="screen" style="padding:8px 10px">
+      <div id="kbWrap"><div id="keyboard"></div></div>
+      <canvas id="surfaceCanvas"></canvas>
+    </div>
   </main>
 </div>
 
@@ -247,6 +287,7 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
     <div class="t on" data-p="eq">equation</div>
     <div class="t" data-p="env">envelope</div>
     <div class="t" data-p="tbl">table</div>
+    <div class="t" data-p="tab">tabota</div>
   </div>
   <div class="pane on" id="pane-eq">
     <div class="help">Every voice is a sum of pure sines. Each partial n: ratio <b>r(n)</b> × fundamental f₀, amplitude <b>a(n)</b>, phase <b>p(n)</b>.</div>
@@ -263,6 +304,10 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
   <div class="pane" id="pane-tbl">
     <div class="help">The sum computed — TI TABLE style. <span style="color:var(--amber)">amber</span> = subharmonic (r&lt;1), <span style="color:var(--violet)">violet</span> = inharmonic.</div>
     <div class="tblWrap"><table class="tbl" id="partTable"></table></div>
+  </div>
+  <div class="pane" id="pane-tab">
+    <div class="help">Aliquoto's note model <em>is</em> Tabota. Every sounding voice is a realizable Tabota Event on one <b>chronological · frequency</b> clock — pitch in Hz, phase-exact, glide-ready. Play keys and watch them appear; the spectrum rides in <code>payload</code> (Aliquoto's paddy). <span id="tabCopy" class="tabcopy">⧉ copy</span></div>
+    <pre id="tabJson" class="tabjson"></pre>
   </div>
 </div></div>
 
@@ -366,18 +411,19 @@ const PRESETS={
 /* ================= AUDIO ================= */
 const WORKLET_SRC=`
 class Additive extends AudioWorkletProcessor{
+  static get parameterDescriptors(){ return [{name:'f0',defaultValue:440,minValue:0,maxValue:24000,automationRate:'a-rate'}]; }
   constructor(o){super();const p=o.processorOptions;
-    this.f0=p.f0;this.P=p.parts;this.dc=p.driftCents||0;this.dr=p.driftRate||0;
+    this.P=p.parts;this.dc=p.driftCents||0;this.dr=p.driftRate||0;
     this.ph=this.P.map(x=>x.phase||0);this.rnd=this.P.map(()=>Math.random()*2-1);
     this.lfo=this.P.map(()=>Math.random()*6.28318);
     this.norm=this.P.reduce((s,x)=>s+Math.abs(x.amp),0)||1;this.dead=false;
     this.port.onmessage=e=>{if(e.data==='stop')this.dead=true;};}
-  process(_,outs){ if(this.dead)return false; const out=outs[0][0]; if(!out)return true;
-    const sr=sampleRate,N=out.length,P=this.P,TAU=6.28318530718;
-    for(let i=0;i<N;i++){ const t=currentTime+i/sr; let s=0;
+  process(_,outs,params){ if(this.dead)return false; const out=outs[0][0]; if(!out)return true;
+    const sr=sampleRate,N=out.length,P=this.P,TAU=6.28318530718,f0a=params.f0;
+    for(let i=0;i<N;i++){ const t=currentTime+i/sr; const f0=f0a.length>1?f0a[i]:f0a[0]; let s=0;
       for(let k=0;k<P.length;k++){ let c=this.rnd[k]*this.dc;
         if(this.dr>0) c+=Math.sin(TAU*this.dr*t+this.lfo[k])*this.dc;
-        const f=this.f0*P[k].ratio*Math.pow(2,c/1200);
+        const f=f0*P[k].ratio*Math.pow(2,c/1200);
         this.ph[k]+=TAU*f/sr; s+=P[k].amp*Math.sin(this.ph[k]); }
       out[i]=s/this.norm; }
     return true; }
@@ -402,38 +448,168 @@ async function initAudio(){
 const el=id=>document.getElementById(id);
 function midiToFreq(m){ const a4=+el("a4").value||440, oct=+el("oct").value||0;
   return a4*Math.pow(2,(m-69+12*oct)/12); }
-function noteOn(m,vel=1){
-  if(!AC||!PARTIALS.length) return;
-  if(voices.has(m)) noteOff(m,true);
-  const cap=+el("maxVoices").value||10;
-  if(voices.size>=cap) noteOff(voices.keys().next().value,true);
-  const f0=midiToFreq(m), now=AC.currentTime;
-  const env=AC.createGain(); env.gain.value=0; env.connect(master);
-  const dc=+el("driftC").value, dr=+el("driftR").value; const v={env};
+/* ---- TUNING: step → Hz. n-EDO (Scala later). Reference = A4 input; oct = octave shift. ---- */
+const TUNING={ edo:12,
+  a4(){ return +el("a4").value||440; }, oct(){ return +el("oct").value||0; },
+  stepToHz(step){ return this.a4()*Math.pow(2,(step + this.edo*this.oct())/this.edo); }, // step 0 = A4
+  toHz(m){ return this.stepToHz(m-69); },      // MIDI/piano: note number as EDO step from A4
+  name(){ return this.edo+"-EDO"; } };
+
+/* ---- NOTE MODEL — Aliquoto's internal note IS a realizable Tabota Event ----
+   A note lives on one chronological·frequency clock. Its pitch is a trajectory
+   pts[]{t (sec from onset), hz, curve}: one point = a held pitch, more = a glide.
+   Underscored fields are runtime audio only — NOT part of the Tabota encoding. */
+let NOTE_SEQ=0;
+function makeNote(hz,vel,opts){ opts=opts||{}; return {
+  id:"n"+(NOTE_SEQ++), pts:[{t:0,hz,curve:"linear"}], vel:(vel==null?1:vel), voice:opts.voice||"add",
+  startSec:null, dur:null, _env:null,_node:null,_oscs:null,_param:null,_released:false }; }
+function rampParam(pm,val,at,curve){ val=Math.max(1e-4,val);
+  if(curve==="step") pm.setValueAtTime(val,at);
+  else if(curve==="exp"||curve==="exponential"){ try{pm.exponentialRampToValueAtTime(val,at);}catch(e){pm.linearRampToValueAtTime(val,at);} }
+  else pm.linearRampToValueAtTime(val,at); }
+function realizeNote(note,whenSec){
+  const now=(whenSec!=null?whenSec:AC.currentTime); note.startSec=now;
+  const env=AC.createGain(); env.gain.value=0; env.connect(master); note._env=env;
+  const dc=+el("driftC").value, dr=+el("driftR").value;
+  const parts=PARTIALS.map(p=>({ratio:p.ratio,amp:p.amp,phase:p.phase}));
   if(workletReady){
     const node=new AudioWorkletNode(AC,"additive",{numberOfInputs:0,numberOfOutputs:1,
-      outputChannelCount:[1],processorOptions:{f0,parts:PARTIALS.map(p=>({ratio:p.ratio,amp:p.amp,phase:p.phase})),driftCents:dc,driftRate:dr}});
-    node.connect(env); v.node=node;
+      outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr}});
+    const f0=node.parameters.get("f0"); note._param=f0;                 // pitch is an automatable param
+    f0.cancelScheduledValues(now); f0.setValueAtTime(Math.max(1e-4,note.pts[0].hz),now);
+    for(let i=1;i<note.pts.length;i++){ const pt=note.pts[i]; rampParam(f0,pt.hz,now+pt.t,pt.curve); }
+    node.connect(env); note._node=node;
   } else {
-    const norm=PARTIALS.reduce((s,p)=>s+Math.abs(p.amp),0)||1; v.oscs=[];
+    const norm=PARTIALS.reduce((s,p)=>s+Math.abs(p.amp),0)||1; note._oscs=[]; const f0=note.pts[0].hz;
     for(const p of PARTIALS){ const f=f0*p.ratio; if(f<=0||f>AC.sampleRate/2)continue;
       const o=AC.createOscillator(); o.type="sine"; o.frequency.value=f;
-      const g=AC.createGain(); g.gain.value=p.amp/norm; o.connect(g); g.connect(env); o.start(now); v.oscs.push(o); }
-  }
-  const A=+el("atk").value,D=+el("dec").value,S=+el("sus").value*(0.3+0.7*vel),peak=0.9*(0.3+0.7*vel);
+      const g=AC.createGain(); g.gain.value=p.amp/norm; o.connect(g); g.connect(env); o.start(now); note._oscs.push({o,ratio:p.ratio}); } }
+  const A=+el("atk").value,D=+el("dec").value,v=note.vel,S=+el("sus").value*(0.3+0.7*v),peak=0.9*(0.3+0.7*v);
   env.gain.cancelScheduledValues(now); env.gain.setValueAtTime(0,now);
   env.gain.linearRampToValueAtTime(peak,now+A); env.gain.linearRampToValueAtTime(S,now+A+D);
-  voices.set(m,v); paintKey(m,true);
+  return note; }
+function releaseNote(note,fast){ if(!note||note._released)return; note._released=true;
+  const now=AC.currentTime, R=fast?0.02:+el("rel").value; note.dur=Math.max(0,now-(note.startSec||now));
+  const env=note._env; env.gain.cancelScheduledValues(now); env.gain.setValueAtTime(env.gain.value,now);
+  env.gain.linearRampToValueAtTime(0,now+R);
+  if(note._node) setTimeout(()=>{ try{note._node.port.postMessage("stop");note._node.disconnect();env.disconnect();}catch(e){} },(R+0.06)*1000);
+  if(note._oscs){ note._oscs.forEach(x=>{try{x.o.stop(now+R+0.03);}catch(e){}}); setTimeout(()=>{try{env.disconnect();}catch(e){}},(R+0.08)*1000); } }
+/* continuous pitch — the seam for glides / ribbon / MPE (unused by discrete keys yet) */
+function bendNote(note,hz,glideSec,curve){ if(!note||!AC)return; const now=AC.currentTime, at=now+(glideSec||0);
+  note.pts.push({t:Math.max(0,now-(note.startSec||now))+(glideSec||0),hz,curve:curve||"linear"});
+  if(note._param) rampParam(note._param,hz,at,curve);
+  else if(note._oscs) note._oscs.forEach(x=>{try{x.o.frequency.linearRampToValueAtTime(Math.max(1e-4, hz * x.ratio), at);}catch(e){}}); }
+
+/* ---- VOICES: keyed by input id. ANY source (keys, MIDI, ribbon, Tabota) → same engine ---- */
+function startNote(id,hz,vel){ if(!AC||!PARTIALS.length)return null;
+  if(voices.has(id)) stopNote(id,true);
+  const cap=+el("maxVoices").value||10; if(voices.size>=cap) stopNote(voices.keys().next().value,true);
+  const note=realizeNote(makeNote(hz,vel)); voices.set(id,note); tabPaneMaybe(); return note; }
+function stopNote(id,fast){ const note=voices.get(id); if(!note)return; voices.delete(id); releaseNote(note,fast); tabPaneMaybe(); }
+/* on-screen / MIDI keyboard wrappers: id = MIDI note, pitch via the tuning map */
+function kbNoteOn(m,vel){ startNote(m,TUNING.toHz(m),vel); paintKey(m,true); }
+function kbNoteOff(m){ stopNote(m); paintKey(m,false); }
+
+/* ================= TABOTA I/O — encode notes to/from realizable Tabota ================= */
+const CURVE2INTERP={linear:"linear",exp:"exponential",exponential:"exponential",step:"step",smooth:"ease-in-out",log:"ease-out"};
+const INTERP2CURVE={linear:"linear",exponential:"exp",step:"step","ease-in-out":"smooth","ease-out":"log","ease-in":"exp"};
+function noteToEvent(note){ const pts=note.pts, ev={ id:note.id, value:{ velocity:+(+note.vel).toFixed(3) } };
+  if(pts.length<=1) ev.value.pitch={ hz:+pts[0].hz.toFixed(4) };
+  else if(pts.length===2) ev.value.pitch={ from:+pts[0].hz.toFixed(4), to:+pts[1].hz.toFixed(4), interpolation:CURVE2INTERP[pts[1].curve]||"linear" };
+  else { ev.value.pitch={ from:+pts[0].hz.toFixed(4), to:+pts[pts.length-1].hz.toFixed(4), interpolation:"linear" };
+    ev.events=[]; for(let i=1;i<pts.length;i++) ev.events.push({ value:{ pitch:{ from:+pts[i-1].hz.toFixed(4), to:+pts[i].hz.toFixed(4), interpolation:CURVE2INTERP[pts[i].curve]||"linear" } },
+      position:{ at:+pts[i-1].t.toFixed(4) }, extent:{ duration:+(pts[i].t-pts[i-1].t).toFixed(4) } }); }
+  ev.position={ at:+((note.startSec||0)).toFixed(4) };
+  ev.extent = note.dur!=null ? { duration:+note.dur.toFixed(4) } : { end:"open" };
+  return ev; }
+function eventToNote(ev){ const pv=(ev.value&&ev.value.pitch)||{}; let pts;
+  if(pv.hz!=null) pts=[{t:0,hz:pv.hz,curve:"linear"}];
+  else if(pv.from!=null&&pv.to!=null){ const dur=(ev.extent&&ev.extent.duration)||1e-4; pts=[{t:0,hz:pv.from,curve:"linear"},{t:dur,hz:pv.to,curve:INTERP2CURVE[pv.interpolation]||"linear"}]; }
+  else pts=[{t:0,hz:getXref(),curve:"linear"}];
+  const note=makeNote(pts[0].hz,(ev.value&&ev.value.velocity)!=null?ev.value.velocity:1); note.pts=pts;
+  note.dur=(ev.extent&&ev.extent.duration)!=null?ev.extent.duration:null; return note; }
+/* the current sounding voices as a realizable Tabota doc — one clock, chronological·frequency.
+   Aliquoto reads/writes only its own paddy: the spectrum rides in payload. */
+function performanceDoc(){ const evs=[...voices.values()].map(noteToEvent);
+  return { payload:{ instrument:"aliquoto", spectrum:el("grammar").value, xPitchHz:getXref(), tuning:TUNING.name },
+    score:[ { frame:{ temporal:"chronological", axis:"frequency" }, extent:{ end:"open" },
+      events: evs.length?evs:[ noteToEvent(makeNote(getXref(),1)) ] } ] }; }
+function tabPaneMaybe(){ if(el("modal").classList.contains("open") && el("pane-tab") && el("pane-tab").classList.contains("on")) renderTabPane(); }
+function renderTabPane(){ const t=el("tabJson"); if(t) t.textContent=JSON.stringify(performanceDoc(),null,2); }
+
+/* ================= .tabota IMPORT — resolve → notes → scheduled playback ================= */
+const NOTE_RE=/^([A-G])([b#]?)(-?\d)$/;
+function noteNameToHz(s){ const m=NOTE_RE.exec(String(s).trim()); if(!m)return NaN;
+  const semis={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]==="#"?1:m[2]==="b"?-1:0)+(+m[3]+1)*12; // MIDI number
+  return 440*Math.pow(2,(semis-69)/12); }
+function hzOf(v){ return typeof v==="number"?v:noteNameToHz(v); }
+function tabInterpToCurve(i){ return ({exponential:"exp",step:"step"})[i]||"linear"; } // ease-* → linear (engine ramps)
+/* resolver output → engine-ready notes. Reads the DETERMINATE fragment only. */
+function resolvedToNotes(out){
+  const notes=[]; let skipped=0;
+  for(const n of (out.nodes||[])){
+    if(!n.pitch){ continue; }                                    // no pitch = tempo/lane/text node
+    if(n.tags && n.tags.some(t=>["dangling","unplaced","unpegged","in-cycle","indeterminate","ordinal"].includes(t))){ skipped++; continue; }
+    const s=n.start&&n.start.sec; if(s==null||!isFinite(s)){ skipped++; continue; }
+    let e=(n.end&&n.end.sec!=null)?n.end.sec:null; if(e==null) e=s+0.4;   // point/instant → short blip
+    const dur=Math.max(0.02,e-s); const pr=n.pitch; let pts=null;
+    if(pr.hz!=null&&isFinite(pr.hz)) pts=[{t:0,hz:pr.hz,curve:"linear"}];
+    else if(pr.from!=null&&pr.to!=null){ const fh=hzOf(pr.from),th=hzOf(pr.to);
+      if(isFinite(fh)&&isFinite(th)) pts=[{t:0,hz:fh,curve:"linear"},{t:dur,hz:th,curve:tabInterpToCurve(pr.interpolation)}]; }
+    if(!pts){ skipped++; continue; }                              // band / relative / unresolved pitch → not realizable
+    notes.push({startSec:s,dur,pts,vel:0.85});
+  }
+  return { notes, total: out.totalSec||notes.reduce((m,n)=>Math.max(m,n.startSec+n.dur),0), skipped, diagnostics: out.diagnostics||[] };
 }
-function noteOff(m,fast){
-  const v=voices.get(m); if(!v)return; voices.delete(m);
-  const now=AC.currentTime, R=fast?0.02:+el("rel").value;
-  v.env.gain.cancelScheduledValues(now); v.env.gain.setValueAtTime(v.env.gain.value,now);
-  v.env.gain.linearRampToValueAtTime(0,now+R);
-  if(v.node) setTimeout(()=>{ try{v.node.port.postMessage("stop");v.node.disconnect();v.env.disconnect();}catch(e){} },(R+0.06)*1000);
-  if(v.oscs){ v.oscs.forEach(o=>{try{o.stop(now+R+0.03);}catch(e){}}); setTimeout(()=>{try{v.env.disconnect();}catch(e){}},(R+0.08)*1000); }
-  paintKey(m,false);
+
+let SCORE=null, scoreNodes=[], scorePlaying=false, scoreTimer=null;
+function killVoice(rec){ try{ if(rec.node){rec.node.port.postMessage("stop");rec.node.disconnect();} if(rec.oscs)rec.oscs.forEach(x=>{try{x.o.stop();}catch(e){}}); rec.env.disconnect(); }catch(e){} }
+function scheduleVoice(note,at,dur){
+  const env=AC.createGain(); env.gain.value=0; env.connect(master);
+  const dc=+el("driftC").value, dr=+el("driftR").value;
+  const parts=PARTIALS.map(p=>({ratio:p.ratio,amp:p.amp,phase:p.phase}));
+  const rec={node:null,oscs:null,env};
+  if(workletReady){
+    const node=new AudioWorkletNode(AC,"additive",{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr}});
+    const f0=node.parameters.get("f0"); f0.setValueAtTime(Math.max(1e-4,note.pts[0].hz),at);
+    for(let i=1;i<note.pts.length;i++) rampParam(f0,note.pts[i].hz,at+note.pts[i].t,note.pts[i].curve);
+    node.connect(env); rec.node=node;
+  } else { rec.oscs=[]; const norm=PARTIALS.reduce((s,p)=>s+Math.abs(p.amp),0)||1; const f0=note.pts[0].hz;
+    for(const p of PARTIALS){ const f=f0*p.ratio; if(f<=0||f>AC.sampleRate/2)continue;
+      const o=AC.createOscillator(); o.type="sine"; o.frequency.value=f; const g=AC.createGain(); g.gain.value=p.amp/norm; o.connect(g); g.connect(env); o.start(at); rec.oscs.push({o,ratio:p.ratio}); } }
+  const A=+el("atk").value,D=+el("dec").value,v=note.vel,S=Math.max(1e-4,+el("sus").value*(0.3+0.7*v)),peak=0.9*(0.3+0.7*v),R=+el("rel").value;
+  env.gain.setValueAtTime(1e-4,at); env.gain.linearRampToValueAtTime(peak,at+A); env.gain.linearRampToValueAtTime(S,at+Math.min(dur,A+D));
+  const rel=at+dur; env.gain.setValueAtTime(env.gain.value,rel); env.gain.setValueAtTime(S,rel); env.gain.linearRampToValueAtTime(1e-4,rel+R);
+  const killAt=rel+R+0.05; if(rec.oscs) rec.oscs.forEach(x=>{try{x.o.stop(killAt);}catch(e){}});
+  scoreNodes.push(rec); setTimeout(()=>{ const i=scoreNodes.indexOf(rec); if(i>=0){killVoice(rec);scoreNodes.splice(i,1);} }, Math.max(0,(killAt-AC.currentTime)*1000));
 }
+function playScore(){ if(!SCORE||!SCORE.notes.length) return;
+  initAudio().then(()=>{ if(!AC)return; if(scorePlaying){ stopScore(); return; }
+    scorePlaying=true; el("tabPlay").textContent="■ stop";
+    const t0=AC.currentTime+0.12; for(const n of SCORE.notes) scheduleVoice(n,t0+n.startSec,n.dur);
+    scoreTimer=setTimeout(stopScore,(SCORE.total+ +el("rel").value+0.4)*1000); }); }
+function stopScore(){ scorePlaying=false; clearTimeout(scoreTimer); if(el("tabPlay")) el("tabPlay").textContent="▶ score";
+  scoreNodes.forEach(killVoice); scoreNodes=[]; }
+function loadTabota(text,name){
+  try{ if(!window.TabotaResolve) throw new Error("resolver not loaded");
+    const doc=JSON.parse(text); const out=window.TabotaResolve.resolve(doc); SCORE=resolvedToNotes(out);
+    // adopt the instrument's own paddy if this doc carries one
+    const pl=doc.payload||{}; let adopted="";
+    if(pl.spectrum){ el("grammar").value=pl.spectrum; if(pl.xPitchHz) el("xref").value=pl.xPitchHz; applyGrammar(); adopted=" · spectrum adopted"; }
+    const errs=SCORE.diagnostics.filter(d=>d.level==="error").length;
+    el("err").className="err ok";
+    el("err").textContent=`⤒ ${name}: ${SCORE.notes.length} notes · ${SCORE.total.toFixed(1)}s`+(SCORE.skipped?` · ${SCORE.skipped} skipped`:"")+(errs?` · ${errs} err`:"")+adopted;
+    el("tabPlay").hidden=SCORE.notes.length===0;
+  }catch(e){ el("err").className="err"; el("err").textContent="✕ .tabota: "+e.message; } }
+function readTabFile(file){ if(!file)return; const r=new FileReader(); r.onload=()=>loadTabota(r.result,file.name); r.readAsText(file); }
+
+/* background live-check (http only): compare canonical resolver hash → notify, never auto-swap */
+const TABOTA_LIVE_URL="../tabota/tabota-resolve.js", CANON_SHA="5bb1de3efb2d951c";
+async function sha16(t){ try{ const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("").slice(0,16); }catch(e){ return null; } }
+async function liveCheck(){ if(location.protocol==="file:") return;
+  try{ const res=await fetch(TABOTA_LIVE_URL,{cache:"no-store"}); if(!res.ok)return;
+    const h=await sha16(await res.text()); if(h && h!==CANON_SHA){ el("tabUpd").hidden=false; console.info("[aliquoto] newer tabota-resolve.js available — re-vendor from",TABOTA_LIVE_URL); } }catch(e){} }
 
 /* ================= STATE / APPLY ================= */
 let PARTIALS=[], META={sums:[],envs:[],literals:0}, edited=false;
@@ -567,6 +743,7 @@ function renderModal(){
   const rows=PARTIALS.map((p,i)=>{ const cls=p.ratio<1?"sub":(Math.abs(p.ratio-Math.round(p.ratio))>1e-6?"inh":"");
     return `<tr><td>${i+1}</td><td class="${cls}">${(+p.ratio.toFixed(5))}</td><td>${(+p.amp.toFixed(5))}</td><td>${(+(p.phase*180/Math.PI).toFixed(1))}</td></tr>`; }).join("");
   el("partTable").innerHTML=`<thead><tr><th>n</th><th>ratio r</th><th>amp a</th><th>phase°</th></tr></thead><tbody>${rows}</tbody>`;
+  renderTabPane();
 }
 function drawEnvPlot(){
   const c=el("envPlot"); const {x,W,H}=fit(c); x.clearRect(0,0,W,H);
@@ -601,15 +778,99 @@ function buildKeyboard(){ const kb=el("keyboard"); kb.innerHTML=""; keyEls.clear
   for(let m=LOW;m<=HIGH;m++){ if(!ISB(m)){wi++;continue;}
     const d=document.createElement("div"); d.className="bk"; d.style.left=(wi*ww-ww*0.3)+"%"; d.style.width=(ww*0.6)+"%";
     bindKey(d,m); kb.appendChild(d); keyEls.set(m,d); } }
-function bindKey(d,m){ d.addEventListener("pointerdown",e=>{e.preventDefault();initAudio().then(()=>noteOn(m,0.9));d.setPointerCapture(e.pointerId);});
-  d.addEventListener("pointerup",()=>noteOff(m)); d.addEventListener("pointerleave",e=>{if(e.buttons)noteOff(m);}); }
+function bindKey(d,m){ d.addEventListener("pointerdown",e=>{e.preventDefault();initAudio().then(()=>kbNoteOn(m,0.9));d.setPointerCapture(e.pointerId);});
+  d.addEventListener("pointerup",()=>kbNoteOff(m)); d.addEventListener("pointerleave",e=>{if(e.buttons)kbNoteOff(m);}); }
 function paintKey(m,on){ const d=keyEls.get(m); if(d)d.classList.toggle("active",on); }
 let kbOct=0; const KMAP={a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12,o:13,l:14,p:15}; const down=new Set();
 addEventListener("keydown",e=>{ if(e.key==="Escape")closeModal();
   if(e.repeat||e.target.tagName==="TEXTAREA"||e.target.tagName==="INPUT")return;
-  const k=e.key.toLowerCase(); if(k==="z"){kbOct=Math.max(-3,kbOct-1);return;} if(k==="x"){kbOct=Math.min(3,kbOct+1);return;}
-  if(k in KMAP) initAudio().then(()=>{const m=60+kbOct*12+KMAP[k]; if(!down.has(m)){down.add(m);noteOn(m,0.85);}}); });
-addEventListener("keyup",e=>{ const k=e.key.toLowerCase(); if(k in KMAP){ const m=60+kbOct*12+KMAP[k]; down.delete(m); noteOff(m);} });
+  const k=e.key.toLowerCase();
+  if(SURFACE==="hex"){ if(k in HEXKMAP) initAudio().then(()=>hexKeyOn(k)); return; }
+  if(SURFACE==="ribbon") return;                                     // ribbon = continuous, no key map
+  if(k==="z"){kbOct=Math.max(-3,kbOct-1);return;} if(k==="x"){kbOct=Math.min(3,kbOct+1);return;}
+  if(k in KMAP) initAudio().then(()=>{const m=60+kbOct*12+KMAP[k]; if(!down.has(m)){down.add(m);kbNoteOn(m,0.85);}}); });
+addEventListener("keyup",e=>{ const k=e.key.toLowerCase();
+  if(SURFACE==="hex"){ if(k in HEXKMAP) hexKeyOff(k); return; }
+  if(k in KMAP){ const m=60+kbOct*12+KMAP[k]; down.delete(m); kbNoteOff(m);} });
+
+/* ================= SURFACES — piano · hex · ribbon (all → startNote/bendNote/stopNote) ================= */
+let SURFACE="piano"; const surfPtr=new Map();          // pointerId -> {id, step?/px,py}
+const HEX={a:2,b:1,base:-24,cells:[]};                 // isomorphic step generators (in EDO steps)
+const RIB={oct:3,snap:false,base:-24};                 // continuous ribbon span
+/* QWERTY → hex (isomorphic): physical rows map to hex rows (staggered like the keys).
+   Ribbon has no discrete keys, so it maps to neither keyboard nor MIDI. */
+const HEXKMAP=(()=>{ const rows=["zxcvbnm,./","asdfghjkl;","qwertyuiop","1234567890"]; const m={};
+  rows.forEach((row,r)=>[...row].forEach((ch,c)=>{ m[ch]={c,r}; })); return m; })();
+const hexKeys=new Map();
+function hexKeyOn(k){ if(hexKeys.has(k))return; const g=HEXKMAP[k]; const step=g.c*HEX.a+g.r*HEX.b+HEX.base;
+  const id="hk_"+k; startNote(id,TUNING.stepToHz(step),0.85); hexKeys.set(k,{id,step}); drawHex(); }
+function hexKeyOff(k){ const v=hexKeys.get(k); if(!v)return; hexKeys.delete(k); stopNote(v.id); drawHex(); }
+function buildSurfChips(){ const box=el("surfChips"); box.innerHTML="";
+  ["piano","hex","ribbon"].forEach(s=>{ const b=document.createElement("span"); b.className="sc"+(s===SURFACE?" on":"");
+    b.dataset.s=s; b.textContent=s; b.onclick=()=>setSurface(s); box.appendChild(b); }); }
+function releaseSurfaceNotes(){ surfPtr.forEach(v=>stopNote(v.id,true)); surfPtr.clear();
+  hexKeys.forEach(v=>stopNote(v.id,true)); hexKeys.clear(); }
+function setSurface(s){ releaseSurfaceNotes(); SURFACE=s;
+  document.querySelectorAll("#surfChips .sc").forEach(c=>c.classList.toggle("on",c.dataset.s===s));
+  const piano=s==="piano", cvs=el("surfaceCanvas");
+  el("kbWrap").style.display = piano?"":"none";
+  cvs.style.display = piano?"none":"block";
+  cvs.style.height = s==="hex"?"186px":"130px";               // panel sizes to the interface
+  surfExtra(); surfHint(); if(!piano) requestAnimationFrame(drawSurface); }
+function surfHint(){ el("surfHint").innerHTML = SURFACE==="piano"?"click · QWERTY a s d f… (z/x oct) · MIDI"
+  : SURFACE==="hex"?"isomorphic · →+A, ↗+B steps · number = pitch-class · touch or QWERTY rows (z…/a…/q…/1…)"
+  : "x = pitch · drag = glide · Y = velocity · multitouch (no key/MIDI map)"; }
+function surfExtra(){ const e=el("surfCtlExtra");
+  if(SURFACE==="hex") e.innerHTML=`<label class="field">→ steps <input type="number" id="hexA" value="${HEX.a}" min="1" max="24" style="width:50px"></label>`+
+    `<label class="field">↗ steps <input type="number" id="hexB" value="${HEX.b}" min="1" max="24" style="width:50px"></label>`;
+  else if(SURFACE==="ribbon") e.innerHTML=`<label class="field">octaves <input type="number" id="ribOct" value="${RIB.oct}" min="1" max="6" style="width:50px"></label>`+
+    `<label class="field" style="flex-flow:row;align-items:center;gap:5px;text-transform:none"><input type="checkbox" id="ribSnap" ${RIB.snap?"checked":""} style="width:auto;box-shadow:none"> snap to EDO</label>`;
+  else e.innerHTML="";
+  const A=el("hexA"),B=el("hexB"),O=el("ribOct"),S=el("ribSnap");
+  if(A) A.oninput=()=>{HEX.a=+A.value||1;drawSurface();}; if(B) B.oninput=()=>{HEX.b=+B.value||1;drawSurface();};
+  if(O) O.oninput=()=>{RIB.oct=+O.value||3;drawSurface();}; if(S) S.onchange=()=>{RIB.snap=S.checked;};
+}
+function fitSurface(){ const c=el("surfaceCanvas"),r=c.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1);
+  c.width=Math.round(r.width*d); c.height=Math.round(r.height*d); const x=c.getContext("2d"); x.setTransform(d,0,0,d,0,0); return {x,W:r.width,H:r.height}; }
+function drawSurface(){ if(SURFACE==="piano") return; if(SURFACE==="hex") drawHex(); else if(SURFACE==="ribbon") drawRibbon(); }
+function activeSteps(){ return new Set([ ...[...surfPtr.values()].filter(v=>v.step!=null).map(v=>v.step),
+                                         ...[...hexKeys.values()].map(v=>v.step) ]); }
+/* HEX */
+function drawHex(){ const {x,W,H}=fitSurface(); x.clearRect(0,0,W,H);
+  const R=Math.max(12,Math.min(26,W/24)), hw=Math.sqrt(3)*R, vh=1.5*R;
+  const cols=Math.ceil(W/hw)+1, rows=Math.ceil(H/vh)+1, edo=TUNING.edo, act=activeSteps();
+  HEX.cells=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){ const cx=c*hw+(r%2?hw/2:0), cy=H-6-r*vh; if(cy<R-2) continue;
+    const step=c*HEX.a+r*HEX.b+HEX.base, pc=((step%edo)+edo)%edo, isRef=pc===0, on=act.has(step);
+    HEX.cells.push({cx,cy,R,step});
+    x.beginPath(); for(let k=0;k<6;k++){ const a=Math.PI/6+k*Math.PI/3, px=cx+R*Math.cos(a), py=cy-R*Math.sin(a); k?x.lineTo(px,py):x.moveTo(px,py);} x.closePath();
+    x.fillStyle= on?cv("--magenta"):(isRef?cv("--lcd-dim"):cv("--lcd-bg")); x.fill();
+    x.lineWidth=1; x.strokeStyle=cv("--edge2"); x.stroke();
+    x.fillStyle= on?"#fff":(isRef?cv("--lcd"):cv("--faint")); x.font="10px "+cv("--lcdf"); x.textAlign="center"; x.textBaseline="middle"; x.fillText(pc,cx,cy); }
+}
+function hexAt(px,py){ let best=null,bd=1e9; for(const c of HEX.cells){ const d=(c.cx-px)**2+(c.cy-py)**2; if(d<bd){bd=d;best=c;} } return (best&&bd<=best.R*best.R)?best:null; }
+/* RIBBON */
+function ribStepAt(px,W){ let step=RIB.base+(px/W)*(RIB.oct*TUNING.edo); return RIB.snap?Math.round(step):step; }
+function drawRibbon(){ const {x,W,H}=fitSurface(); x.clearRect(0,0,W,H); const edo=TUNING.edo, total=RIB.oct*edo;
+  for(let s=Math.ceil(RIB.base); s<=RIB.base+total; s++){ const px=((s-RIB.base)/total)*W, pc=((s%edo)+edo)%edo;
+    x.strokeStyle=pc===0?cv("--lcd-dim"):cv("--edge"); x.globalAlpha=pc===0?.9:.3; x.lineWidth=pc===0?2:1;
+    x.beginPath();x.moveTo(px,0);x.lineTo(px,H);x.stroke(); x.globalAlpha=1;
+    if(pc===0){ x.fillStyle=cv("--lcd-dim"); x.font="11px "+cv("--lcdf"); x.textAlign="center"; x.fillText(Math.round(TUNING.stepToHz(s))+"Hz",px,H-3); } }
+  for(const v of surfPtr.values()){ if(v.px==null)continue; x.fillStyle=cv("--magenta"); x.shadowColor=cv("--magenta"); x.shadowBlur=9;
+    x.beginPath();x.arc(v.px,v.py,7,0,7);x.fill(); x.shadowBlur=0; }
+}
+/* pointer handling (multitouch) */
+(function(){ const c=el("surfaceCanvas"); const pos=e=>{ const r=c.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top,W:r.width,H:r.height}; };
+  c.addEventListener("pointerdown",e=>{ if(SURFACE==="piano")return; e.preventDefault(); try{c.setPointerCapture(e.pointerId);}catch(_){}
+    initAudio().then(()=>{ const p=pos(e), id="surf"+e.pointerId;
+      if(SURFACE==="hex"){ const cell=hexAt(p.x,p.y); if(!cell)return; startNote(id,TUNING.stepToHz(cell.step),0.9); surfPtr.set(e.pointerId,{id,step:cell.step}); drawHex(); }
+      else { const step=ribStepAt(p.x,p.W), vel=Math.max(.2,Math.min(1,1-p.y/p.H)); startNote(id,TUNING.stepToHz(step),vel); surfPtr.set(e.pointerId,{id,px:p.x,py:p.y}); drawRibbon(); } }); });
+  c.addEventListener("pointermove",e=>{ const v=surfPtr.get(e.pointerId); if(!v)return; const p=pos(e);
+    if(SURFACE==="hex"){ const cell=hexAt(p.x,p.y); if(cell&&cell.step!==v.step){ startNote(v.id,TUNING.stepToHz(cell.step),0.9); v.step=cell.step; drawHex(); } }
+    else { const step=ribStepAt(p.x,p.W), nt=voices.get(v.id); if(nt) bendNote(nt,TUNING.stepToHz(step),0.02); v.px=p.x; v.py=p.y; drawRibbon(); } });
+  const up=e=>{ const v=surfPtr.get(e.pointerId); if(!v)return; stopNote(v.id); surfPtr.delete(e.pointerId); drawSurface(); };
+  c.addEventListener("pointerup",up); c.addEventListener("pointercancel",up); c.addEventListener("pointerleave",up);
+})();
 
 /* ================= MIDI ================= */
 function initMIDI(){ if(!navigator.requestMIDIAccess){ el("midiStat").textContent="MIDI unsupported"; return; }
@@ -617,8 +878,8 @@ function initMIDI(){ if(!navigator.requestMIDIAccess){ el("midiStat").textConten
       el("midiStat").textContent=names.length?"MIDI ▸ "+names.join(", "):"MIDI no device"; };
     hook(); acc.onstatechange=hook; }).catch(()=>el("midiStat").textContent="MIDI denied"); }
 function onMIDI(ev){ const [st,d1,d2]=ev.data, cmd=st&0xf0;
-  if(cmd===0x90&&d2>0) initAudio().then(()=>noteOn(d1,d2/127));
-  else if(cmd===0x80||(cmd===0x90&&d2===0)) noteOff(d1); }
+  if(cmd===0x90&&d2>0) initAudio().then(()=>kbNoteOn(d1,d2/127));
+  else if(cmd===0x80||(cmd===0x90&&d2===0)) kbNoteOff(d1); }
 
 /* ================= WIRE ================= */
 function slider(id,out,fmt,cb){ const s=el(id),o=el(out); const u=()=>{o.textContent=fmt(+s.value);cb&&cb(+s.value);}; s.addEventListener("input",u); u(); }
@@ -635,7 +896,8 @@ function init(){
   document.querySelectorAll(".tabs .t").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tabs .t").forEach(z=>z.classList.remove("on")); t.classList.add("on");
     document.querySelectorAll(".pane").forEach(z=>z.classList.remove("on")); el("pane-"+t.dataset.p).classList.add("on");
-    if(t.dataset.p==="env") drawEnvPlot(); });
+    if(t.dataset.p==="env") drawEnvPlot(); if(t.dataset.p==="tab") renderTabPane(); });
+  el("tabCopy").onclick=()=>{ navigator.clipboard&&navigator.clipboard.writeText(el("tabJson").textContent); el("tabCopy").textContent="⧉ copied"; setTimeout(()=>el("tabCopy").textContent="⧉ copy",1200); };
   el("bakeBtn").onclick=()=>{ if(!PARTIALS.length)return;
     el("grammar").value="# baked from spectrum\n"+PARTIALS.map(p=>(+p.ratio.toFixed(5))+" : "+(+p.amp.toFixed(5))+(p.phase?" : "+(+(p.phase*180/Math.PI).toFixed(1)):"")).join("\n");
     applyGrammar(); };
@@ -649,7 +911,16 @@ function init(){
   slider("sus","susV",v=>v.toFixed(2)); slider("rel","relV",v=>v.toFixed(2));
   slider("driftC","driftCV",v=>v.toFixed(1)); slider("driftR","driftRV",v=>v.toFixed(2));
   buildKeyboard(); initMIDI();
-  addEventListener("resize",()=>{ drawSpec(); drawWaveStatic(); if(el("modal").classList.contains("open"))drawEnvPlot(); });
+  buildSurfChips(); setSurface("piano");
+  el("edo").addEventListener("input",()=>{ TUNING.edo=Math.max(1,Math.min(96,+el("edo").value||12)); drawSurface(); });
+  // .tabota import + score transport
+  el("tabImport").onclick=()=>el("tabFile").click();
+  el("tabFile").addEventListener("change",e=>{ readTabFile(e.target.files[0]); e.target.value=""; });
+  el("tabPlay").onclick=playScore;
+  addEventListener("dragover",e=>{ e.preventDefault(); });
+  addEventListener("drop",e=>{ e.preventDefault(); const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) readTabFile(f); });
+  liveCheck();
+  addEventListener("resize",()=>{ drawSpec(); drawWaveStatic(); drawSurface(); if(el("modal").classList.contains("open"))drawEnvPlot(); });
 }
 init();
 </script>

@@ -8,13 +8,32 @@ irrational, prime, or **below** the fundamental (subharmonic). The spectrum is w
 as **mathematics** (summations, envelopes, conditionals) rather than drawn or dialed,
 and the math is kept visible, not hidden inside an engine.
 
-*aliquoto* = a part contained in a whole an exact number of times (a divisor/multiple);
-also the *aliquoto strings* of pianos and harps that ring in sympathetic overtones.
+*aliquoto* = **Aliquot** + **koto**: exact parts of a whole, made playable as a resonant spectral instrument.
+
+*aliquot* = a part contained in a whole an exact number of times (a divisor/multiple);
+also the *aliquot strings* of pianos and harps that ring in sympathetic overtones.
 
 Sibling to **Cycla** (`../tabota/cycla_builder.html`): Cycla is a tuning of *meter*
 (recursive subdivision); aliquoto is a tuning of *timbre* (the sum of sines). Same
 counter-poetics — both work the interstitial positions a standard grid disallows
 (12-TET for pitch, integer harmonics for timbre).
+
+---
+
+## Name and aesthetic direction
+
+Working name: **aliquoto** — **Aliquot** plus **koto**. It should feel like an instrument that does not quite exist yet: spectral arithmetic as a plucked/resonant object, not a generic synth plugin. Keep **Aliquot** as the mathematical root, but let the final `o` make it sound playable, physical, and a little uncanny.
+
+Current device identity: The skin should read as a cursed bathypelagic Mathematica notebook running on a TI calculator: passive-matrix, slightly transflective LCD green as the substrate; dark pixel-ink graphics and controls in the foreground; dense symbolic readouts; exacting firmware labels; notebook-like `In[]` / `Out[]` affordances where they help.
+
+Design rules for the light skin:
+
+- **LCD first.** The background is not “white mode”; it is green calculator substrate, sunlit, stained, low-contrast, and a little mineral.
+- **Dark ink foreground.** Spectra, waveforms, controls, keys, and table glyphs should feel printed into or rising out of the LCD, not glowing neon.
+- **High nerd density.** Prefer small labels, status chips, parser/compiler language, table readouts, exact units, and symbolic notation over decorative explanation.
+- **Modern affordances, old device soul.** Keep it usable: clear buttons, hover/focus states, legible controls, responsive layout. The cursed part should come from the math/device logic, not from making it hard to use.
+- **Pacific abyss, lightly.** Hint through bathymetric, oceanographic, pressure-depth, sonar, and firmware language. Avoid obvious horror decoration; keep the surface clinical, technical, and wrong by implication.
+
 
 ---
 
@@ -146,6 +165,9 @@ env : 1/(1+((hz-1200)/400)^2)
 - **Sound:** one `AudioWorkletProcessor` per voice, summing sines with true per-partial
   phase (a plain oscillator bank can't honor phase — that's the fallback if AudioWorklet
   is unavailable). Amplitude is normalized by Σ|aₙ|; a compressor guards the master.
+- **Pitch is an automatable param:** the fundamental `f0` is an a-rate `AudioParam`, so a
+  note's pitch can move during its life — glides, ribbon sweeps, MPE bend all schedule
+  onto it. Discrete keys just set it once.
 - **Per-partial drift:** `spread¢` = static random detune per partial; `rate` = each
   partial slowly wanders. The current organicizer; per-partial/multi-target jitter is
   planned (see Roadmap).
@@ -153,9 +175,98 @@ env : 1/(1+((hz-1200)/400)^2)
 
 ---
 
+## Note model — Aliquoto speaks Tabota
+
+Aliquoto's internal note **is** a realizable [Tabota](../tabota/) Event. Every input —
+on-screen keys, QWERTY, MIDI, and (soon) a `.tabota` file or a continuous surface —
+produces the same thing, and the engine realizes it. Tabota is the lingua franca; the
+synth is a *realizer*.
+
+**The seam.** All sources funnel through two source-agnostic calls:
+`startNote(id, hz, vel)` / `stopNote(id)`. A source only has to produce a **frequency in
+Hz** (plus gate + velocity). The keyboard/MIDI wrappers map a MIDI note through the
+`TUNING` layer (`TUNING.toHz`, 12-TET today, pluggable) — but a hex grid, ribbon, or
+Tabota importer would call `startNote` with a Hz it computed itself.
+
+**The note.** A note carries a pitch *trajectory* `pts[]{t, hz, curve}` (seconds from
+onset): one point = a held pitch, more = a glide. `bendNote(note, hz, glideSec, curve)`
+appends a breakpoint live and schedules it onto the `f0` param — the seam for
+ribbon/MPE/glide.
+
+**The encoding** (`noteToEvent` / `eventToNote`): the note maps to a Tabota `Event` on a
+`chronological · frequency` frame — `value.pitch.hz` (or `.from/.to/.interpolation` for a
+glide, or nested per-segment glide children for a multi-point trajectory),
+`value.velocity`, `position.at` (seconds), `extent.duration` (or `end:"open"` while held).
+`performanceDoc()` wraps the sounding voices into a full doc; the **spectrum rides in
+`payload`** — Aliquoto reads and writes only its own paddy of the shared file. Watch it
+live in the **tabota** tab of the `ƒ math` card.
+
+Because the note is Hz-native and the pitch is a param, the `.tabota` import path (next)
+is small: run `tabota-resolve.js` `resolve(doc)`, turn each resolved node into a note,
+schedule. **No MIDI in the middle** — MIDI's 12-TET + power-of-2 bend is the exact
+quantization Tabota refuses.
+
+---
+
+## Interfaces & tuning
+
+The bottom panel is a **switchable surface** (the `// interface` chip row) — pick how you
+play. All surfaces are multitouch and feed the same engine via `startNote(id, hz, vel)` /
+`bendNote` / `stopNote`; a surface just computes Hz from a gesture.
+
+- **piano** — the standard keyboard (click · QWERTY `a s d f…`, `z`/`x` octave · MIDI),
+  retuned through the tuning layer.
+- **hex** — an **isomorphic** grid (Lumatone lineage). Each cell is a pitch; moving right
+  adds `→ steps`, up-right adds `↗ steps` (in EDO steps, editable) — so every interval is a
+  constant shape you can transpose anywhere. Cell numbers are pitch-classes; the tonic (0)
+  is highlighted (and repeats as a lattice — your orientation anchor). Drag across cells to
+  slide. Also playable from the **computer keyboard**: the four physical rows map
+  isomorphically onto the hex (`z…` / `a…` / `q…` / `1…` bottom-to-top).
+- **ribbon** — a **continuous** strip (stylophone / Continuum): x = pitch (log-Hz over
+  `octaves`), **drag = glide** (rides the `f0` param), Y = velocity, multiple fingers =
+  chords. Optional **snap to EDO** quantizes to scale degrees; off = true glissando.
+  Continuous, so it maps to neither computer keyboard nor MIDI.
+
+The panel resizes to the selected interface; switching surfaces releases any held notes.
+
+**Tuning** is **n-EDO**: set `EDO` (divisions per octave — 12, 24 quartertone, 19, 31,
+22…). Reference is the `A4 Hz` control (step 0 = A4); `oct` shifts by octaves. Every surface
+and MIDI/QWERTY resolve their step index through `stepToHz(step) = A4·2^(step/EDO)`. Scala
+`.scl/.kbm` import is the next tuning source; MPE and more surfaces after.
+
+---
+
+## Importing a `.tabota` score
+
+Drag a `.tabota`/`.tab`/`.json` file onto the window, or use **⤒ .tabota** in the header.
+Aliquoto parses it, runs the **vendored resolver** (`tabota-resolve.js`, a classic-script
+copy that self-registers `window.TabotaResolve`), and realizes the **determinate fragment**
+— every node with a grounded time (`start.sec`) and a usable pitch (`hz`, or a `from/to`
+glide). Indeterminate / relational / unplaced / banded pitches are skipped (counted in the
+status line). **▶ score** plays it through the current spectrum; each note is a scheduled
+voice with its pitch on the `f0` param (so glides sound). If the file's `payload` carries an
+`aliquoto` spectrum (as Aliquoto's own exports do), that spectrum is adopted on load.
+
+No MIDI anywhere in this path — the score's Hz go straight to the engine.
+
+**Resolver freshness.** The local copy is pinned and stamped with its source commit. When
+served over http(s), Aliquoto does a background hash check against the canonical
+`tabota-resolve.js`; if it differs, the **resolver ✱** chip appears — a nudge to re-vendor
+(it never auto-swaps). Offline / `file://` skips the check and just uses the local copy.
+
+---
+
 ## Roadmap
 
-1. **Per-note evaluation** — bind `X`/`f0` to the played note so spectra are computed
+1. **More surfaces & tuning** — quartertone (24-EDO) split-key piano; **Scala `.scl/.kbm`**
+   import (arbitrary scales / JI); saved **performance presets** `{surface + tuning + range}`.
+   (Hex, ribbon, n-EDO — done.)
+2. **Live bridge** — `BroadcastChannel` link to TaBoTa Roll (Roll = sequencer, Aliquoto =
+   instrument), real-time. (File import — done.)
+2. **Alt-tuning surfaces** — a `TUNING` layer (Scala `.scl/.kbm`, n-EDO) + on-screen
+   surfaces (hex isomorphic, quartertone, continuous ribbon) that emit Hz-notes directly;
+   multitouch for phone/tablet. Saved as **performance presets** `{surface + tuning + wiring}`.
+3. **Per-note evaluation** — bind `X`/`f0` to the played note so spectra are computed
    per key. Unlocks tracking filters, fixed-Hz formants, key-scaled brightness,
    octave/region splits — timbre as a *function of pitch*. (Architectural: split the
    parsed *spec* from the per-note *realized* partials.)
