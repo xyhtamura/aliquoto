@@ -98,14 +98,39 @@ select,input[type=number],input[type=text],textarea{
   border:1px solid var(--edge2); border-radius:3px; padding:6px 8px;
   box-shadow:inset 0 1px 5px #6f7f4f66, 0 1px 0 #edf5bd; }
 input[type=number]{ width:70px }
-input:focus,textarea:focus{ outline:none; border-color:var(--magenta); box-shadow:0 0 0 2px #8c174833, inset 0 1px 5px #6f7f4f66 }
+select{
+  appearance:none; -webkit-appearance:none;
+  padding-right:32px; cursor:pointer; color-scheme:light;
+  background:
+    linear-gradient(135deg,transparent 0 42%,var(--lcd) 43% 58%,transparent 59%) right 13px top 50%/7px 7px no-repeat,
+    linear-gradient(225deg,transparent 0 42%,var(--lcd) 43% 58%,transparent 59%) right 8px top 50%/7px 7px no-repeat,
+    linear-gradient(90deg,transparent calc(100% - 29px),rgba(38,52,37,.23) calc(100% - 28px),rgba(238,246,190,.42) calc(100% - 27px),rgba(156,173,99,.5) 100%),
+    linear-gradient(180deg,#d8e4a6,#b9c87e);
+}
+select:hover{ border-color:var(--cyan); color:#07150e }
+select optgroup,select option{ background:#c1ce86; color:#102318; font-family:var(--mono) }
+select::-ms-expand{ display:none }
+input[type=number]{
+  color-scheme:light; padding-right:4px;
+  background:
+    linear-gradient(90deg,transparent calc(100% - 19px),rgba(38,52,37,.2) calc(100% - 18px),rgba(238,246,190,.38) calc(100% - 17px),rgba(172,188,113,.35) 100%),
+    linear-gradient(180deg,#d8e4a6,#b9c87e);
+}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{
+  opacity:1; cursor:pointer; height:22px; margin:0 0 0 4px;
+  filter:sepia(1) saturate(1.5) hue-rotate(34deg) brightness(.72) contrast(1.25);
+}
+input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--magenta); box-shadow:0 0 0 2px #8c174833, inset 0 1px 5px #6f7f4f66 }
 textarea#grammar{ font-size:13px; line-height:1.65; width:100%; min-height:150px; resize:vertical; tab-size:2; padding:11px 12px;
   color:#08150d; background:
     linear-gradient(180deg,rgba(225,235,170,.72),rgba(185,200,124,.82)),
     repeating-linear-gradient(0deg,transparent 0 20px,rgba(37,52,33,.18) 20px 21px);
   border:2px solid var(--edge2); border-radius:4px;
   box-shadow:inset 0 0 0 1px #edf5bd, inset 0 11px 24px #73824e44, 0 8px 18px -16px #101b15; }
-.presets{ display:flex; flex-wrap:wrap; gap:5px }
+.presets{ display:block }
+.presetMenu{ width:100%; position:relative }
+.presetMenu select{ width:100%; min-width:0 }
 .chip{ font-family:var(--mono); font-size:11px; color:#dce9a7; background:linear-gradient(180deg,#25372b,#111d16);
   border:1px solid #07110b; border-radius:3px; padding:4px 10px; cursor:pointer; transition:.12s;
   box-shadow:inset 0 1px 0 #546849, 0 1px 0 #edf5bd; }
@@ -124,7 +149,46 @@ textarea#grammar{ font-size:13px; line-height:1.65; width:100%; min-height:150px
 .sliderrow span{ font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em }
 .sliderrow output{ font-family:var(--lcdf); font-size:17px; text-align:right; color:var(--ink);
   background:#c3d089; border:1px solid #6e7c54; padding:0 4px; box-shadow:inset 0 1px 5px #6f7f4f66; }
-input[type=range]{ width:100%; accent-color:var(--magenta) }
+.sliderrow.locked{ opacity:.48 }
+.sliderrow.locked input{ cursor:not-allowed }
+.sliderrow.locked output::after{ content:" formula"; font-size:12px; color:var(--magenta); margin-left:3px }
+input[type=range]{
+  width:100%; height:24px; margin:0; appearance:none; -webkit-appearance:none;
+  background:transparent; cursor:pointer; accent-color:var(--magenta);
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:9px; border:1px solid var(--edge2); border-radius:3px;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 18px,rgba(38,52,37,.34) 18px 19px),
+    linear-gradient(180deg,#97a85f,#cbd795 48%,#7f914f);
+  box-shadow:inset 0 1px 4px #32412688, 0 1px 0 #edf5bd;
+}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none; -webkit-appearance:none; width:13px; height:23px; margin-top:-8px;
+  border:1px solid #07110b; border-radius:2px;
+  background:linear-gradient(90deg,#17251c 0 2px,#8c1748 2px 5px,#d4df9b 5px 7px,#8c1748 7px 11px,#17251c 11px 100%);
+  box-shadow:inset 0 1px 0 #e2ecad, 0 0 0 1px #edf5bd66, 0 2px 5px #101b1577;
+}
+input[type=range]:hover::-webkit-slider-thumb{ filter:brightness(1.12); box-shadow:inset 0 1px 0 #e2ecad, 0 0 0 2px #8c174844, 0 2px 5px #101b1577 }
+input[type=range]:focus::-webkit-slider-runnable-track{ border-color:var(--magenta); box-shadow:0 0 0 2px #8c174833, inset 0 1px 4px #32412688 }
+input[type=range]::-moz-range-track{
+  height:9px; border:1px solid var(--edge2); border-radius:3px;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 18px,rgba(38,52,37,.34) 18px 19px),
+    linear-gradient(180deg,#97a85f,#cbd795 48%,#7f914f);
+  box-shadow:inset 0 1px 4px #32412688, 0 1px 0 #edf5bd;
+}
+input[type=range]::-moz-range-progress{
+  height:9px; border-radius:3px 0 0 3px;
+  background:linear-gradient(180deg,#9d2457,#6b1239);
+}
+input[type=range]::-moz-range-thumb{
+  width:13px; height:23px; border:1px solid #07110b; border-radius:2px;
+  background:linear-gradient(90deg,#17251c 0 2px,#8c1748 2px 5px,#d4df9b 5px 7px,#8c1748 7px 11px,#17251c 11px 100%);
+  box-shadow:inset 0 1px 0 #e2ecad, 0 0 0 1px #edf5bd66, 0 2px 5px #101b1577;
+}
+input[type=range]:hover::-moz-range-thumb{ filter:brightness(1.12); box-shadow:inset 0 1px 0 #e2ecad, 0 0 0 2px #8c174844, 0 2px 5px #101b1577 }
+input[type=range]:focus::-moz-range-track{ border-color:var(--magenta); box-shadow:0 0 0 2px #8c174833, inset 0 1px 4px #32412688 }
 
 .screen{ position:relative; border:2px solid var(--edge2); border-radius:4px; overflow:hidden;
   background:
@@ -221,7 +285,9 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
   <aside class="side"><div class="pad">
 
     <div class="seclabel">presets</div>
-    <div class="presets" id="presets"></div>
+    <div class="presets" id="presets">
+      <label class="field presetMenu">bank <select id="presetSelect"></select></label>
+    </div>
 
     <div class="seclabel">spectrum <span class="ye">Y=</span></div>
     <textarea id="grammar" spellcheck="false"></textarea>
@@ -237,9 +303,9 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
       <span class="help" style="flex:1;margin:0">the reference <code>hz</code>/<code>f0</code> resolve against — <b>keyfollow</b>. Fixed today; becomes the played note later (multi-instrument keyboard).</span>
     </div>
     <div class="help">
-      <b>partial</b> <code>r : a : p°</code> · <b>sum</b> <code>sum n=1..N : r(n) : a(n) : p(n)</code> (<code>N=inf</code>→ceil; two indices = product) · <b>env</b> <code>env : f(r)</code> · filter with <b>where</b> <code>sum … where PRED</code>.<br>
-      in <b>a</b>/<b>p</b>/<b>env</b>/<b>where</b> you also have <code>r</code> (this partial's ratio), <code>hz</code> (=r·X), <code>f0</code> (=X). <b>conditionals</b> <code>iff(cond,a,b)</code> <code>odd(n)</code> <code>even(n)</code> <code>step</code> <code>between</code> <code>clamp</code> · compare <code>&lt; &gt; &lt;= &gt;= == != &amp;&amp; ||</code> (true=1).<br>
-      fns <code>prime fib sin cos exp log sqrt pow abs mod</code> · consts <code>pi e phi tau</code> · <code>^</code> power · <code>#</code> comment. Drag a partial = amp; <b>bake</b> writes it back as math.
+      <b>partial</b> <code>r : a : p°</code> or <code>r:a:p:A:D:S:R</code> · <b>sum</b> <code>sum n=1..N : r(n,t) : a(n) : p(n)</code> (+ optional <code>:A:D:S:R</code>) · <b>env</b> <code>env : f(r)</code> · <b>gain</b> <code>gain : f(t,r,hz,f0,a)</code> · <b>adsr</b> <code>adsr : A(r) : D(r) : S(r) : R(r)</code>.<br>
+      in <b>a</b>/<b>p</b>/<b>env</b>/<b>adsr</b>/<b>where</b> you also have <code>r</code> (this partial's ratio), <code>hz</code> (=r·X), <code>f0</code> (=X). Use <code>t</code> in <b>r</b>/<b>env</b>/<b>gain</b> for time motion; <code>r(t)</code> must be positive at <code>t=0</code> (use <code>t+1</code>). gain/env time functions are clipped to <code>0..1</code> then multiplied by <code>a</code>. <b>conditionals</b> <code>iff(cond,a,b)</code> <code>odd(n)</code> <code>even(n)</code> <code>step</code> <code>between</code> <code>clamp</code> · compare <code>&lt; &gt; &lt;= &gt;= == != &amp;&amp; ||</code> (true=1).<br>
+      fns <code>prime fib sin cos exp log sqrt pow abs mod clip01 adsr</code> · consts <code>pi e phi tau</code> · <code>^</code> power · <code>#</code> comment. Drag a partial = amp; <b>bake</b> writes it back as math.
     </div>
 
     <div class="divider"></div>
@@ -290,14 +356,14 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
     <div class="t" data-p="tab">tabota</div>
   </div>
   <div class="pane on" id="pane-eq">
-    <div class="help">Every voice is a sum of pure sines. Each partial n: ratio <b>r(n)</b> × fundamental f₀, amplitude <b>a(n)</b>, phase <b>p(n)</b>.</div>
+    <div class="help">Every voice is a sum of pure sines. Each partial n: ratio <b>r(n)</b> × fundamental f₀, amplitude <b>a(n)</b>, phase <b>p(n)</b>, envelope <b>eₙ(t)</b>.</div>
     <div class="eqbox" id="eqGeneral"></div>
     <div class="seclabel" style="margin:14px 0 0">your spectrum</div>
     <div class="eqbox" id="eqLive"></div>
     <div class="deflist" id="eqDefs"></div>
   </div>
   <div class="pane" id="pane-env">
-    <div class="help">The spectral envelope <b>â(r)</b> = product of your <code>env</code> lines, a function of ratio r. It multiplies each partial's amplitude — the bijective pitch→amp map. Dots = your partials sitting on the curve.</div>
+    <div class="help">The spectral envelope <b>â(r)</b> = product of your <code>env</code> lines, a function of ratio r. <code>adsr</code> lines do the same pitch→shape mapping for attack, decay, sustain, release.</div>
     <canvas id="envPlot"></canvas>
     <div class="deflist" id="envDefs"></div>
   </div>
@@ -318,14 +384,18 @@ const PRIMES=(()=>{const a=[],lim=4000,s=new Uint8Array(lim).fill(1);
   for(let i=2;i<lim;i++){if(s[i]){a.push(i);for(let j=i*i;j<lim;j+=i)s[j]=0;}}return a;})();
 function prime(n){n=Math.max(1,Math.round(n));return PRIMES[n-1]||PRIMES[PRIMES.length-1];}
 function fib(n){n=Math.max(1,Math.round(n));let a=1,b=1;for(let i=2;i<n;i++)[a,b]=[b,a+b];return b;}
+function clip01(x){return Math.max(0,Math.min(1,isFinite(x)?x:0));}
+function adsrShape(t,a,d,s,r){ t=Math.max(0,t); a=Math.max(.0001,a); d=Math.max(.0001,d); s=clip01(s);
+  if(t<a)return t/a; if(t<a+d)return 1+(s-1)*((t-a)/d); return s; }
 const MENV={prime,fib,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,log:Math.log,
   sqrt:Math.sqrt,pow:Math.pow,abs:Math.abs,floor:Math.floor,round:Math.round,sign:Math.sign,
   min:Math.min,max:Math.max,pi:Math.PI,e:Math.E,tau:2*Math.PI,phi:(1+Math.sqrt(5))/2,
   // conditionals / piecewise
   iff:(c,a,b)=>c?a:b, odd:n=>(Math.round(n)%2!==0)?1:0, even:n=>(Math.round(n)%2===0)?1:0,
   not:x=>x?0:1, clamp:(x,lo,hi)=>Math.min(hi,Math.max(lo,x)), step:(edge,x)=>x>=edge?1:0,
-  between:(x,lo,hi)=>(x>=lo&&x<=hi)?1:0, mod:(a,b)=>((a%b)+b)%b};
+  between:(x,lo,hi)=>(x>=lo&&x<=hi)?1:0, mod:(a,b)=>((a%b)+b)%b, clip01, adsrShape, adsr:adsrShape};
 const MKEYS=Object.keys(MENV);
+const hasT=expr=>/\bt\b/.test(expr||"");
 function compileExpr(expr,vars){
   expr=expr.replace(/\*\*/g,"^").replace(/\^/g,"**");
   if(/[^0-9a-zA-Z_.+\-*/%(),<>=!&|\s]/.test(expr)) throw new Error("bad char in: "+expr);
@@ -335,6 +405,16 @@ function compileExpr(expr,vars){
   return (...v)=>fn(...v,...MKEYS.map(k=>MENV[k]));
 }
 const K=s=>compileExpr(s,[])();
+function ADSR(a,d,s,r){
+  const time=x=>Math.max(0.001,Math.min(8,isFinite(x)?+x:0.001));
+  return {a:time(a),d:time(d),s:Math.max(0,Math.min(1,isFinite(s)?+s:0)),r:time(r)};
+}
+function evalADSR(fns,args){ return ADSR(fns[0](...args),fns[1](...args),fns[2](...args),fns[3](...args)); }
+function initialRatio(fn,args,line){
+  const v=fn(...args,0);
+  if(!isFinite(v)||v<=0) throw new Error("line "+line+": r(t) must be >0 at t=0 (try t+1)");
+  return v;
+}
 
 /* ---------- grammar -> partials (+ meta for the math card) ---------- */
 const MAXPARTS=1024;
@@ -343,7 +423,7 @@ function parseBound(tok,ceil){ tok=tok.trim();
   const v=Math.round(K(tok)); if(!isFinite(v)) throw new Error("bad bound '"+tok+"'"); return v; }
 function buildPartials(text,ceil,f0ref){
   f0ref=f0ref||261.63;
-  const parts=[], meta={sums:[],envs:[],literals:0}; const lines=text.split(/\n/);
+  const parts=[], meta={sums:[],envs:[],gains:[],adsrs:[],literals:0,dynamicRatio:false,dynamicGain:false}; const lines=text.split(/\n/);
   for(let li=0;li<lines.length;li++){
     let s=lines[li].split("#")[0].trim(); if(!s)continue;
     if(/^sum\b/i.test(s)){
@@ -354,32 +434,64 @@ function buildPartials(text,ceil,f0ref){
       const idx=[...decl.matchAll(/([A-Za-z_]\w*)\s*=\s*([^.\s]+)\s*\.\.\s*([^.\s]+)/g)];
       if(!idx.length) throw new Error("line "+(li+1)+": bad index (use n=1..N)");
       const vars=idx.map(m=>m[1]);
+      if(vars.includes("t")) throw new Error("line "+(li+1)+": 't' is reserved for time");
       const ranges=idx.map(m=>[parseBound(m[2],ceil),parseBound(m[3],ceil)]);
       const rE=rest[0], aE=rest[1]||"1", pE=rest[2]||"0";
       const EV=[...vars,"r","hz","f0"]; // r=this partial's ratio, hz=r·f0, f0=X reference pitch
-      const fr=compileExpr(rE,vars), fa=compileExpr(aE,EV), fp=compileExpr(pE,EV);
+      const rHasT=hasT(rE);
+      const fr=compileExpr(rE,rHasT?[...vars,"t"]:vars), fa=compileExpr(aE,EV), fp=compileExpr(pE,EV);
+      if(rest.length>7) throw new Error("line "+(li+1)+": too many ':' fields");
+      if(rest.length>3 && rest.length<7) throw new Error("line "+(li+1)+": sum ADSR needs attack:decay:sustain:release");
+      const adsE=rest.length>=7?rest.slice(3,7):null, fads=adsE?adsE.map(e=>compileExpr(e,EV)):null;
       const fw=whereE?compileExpr(whereE,EV):null;
-      meta.sums.push({vars,ranges,r:rE,a:aE,p:pE,where:whereE,decl:decl.trim()});
+      meta.sums.push({vars,ranges,r:rE,a:aE,p:pE,adsr:adsE,where:whereE,decl:decl.trim()});
       let acc=[[]];
       for(const [lo,hi] of ranges){ const nx=[];
         for(const pre of acc) for(let v=lo;v<=hi;v++){ nx.push(pre.concat(v)); if(nx.length>MAXPARTS*4) throw new Error("line "+(li+1)+": sum too large"); }
         acc=nx; }
-      for(const c of acc){ const r=fr(...c); const hz=r*f0ref;
+      for(const c of acc){ const r=rHasT?initialRatio(fr,c,li+1):fr(...c); const hz=r*f0ref;
         if(fw && !fw(...c,r,hz,f0ref)) continue;
         const a=fa(...c,r,hz,f0ref), p=fp(...c,r,hz,f0ref);
         if(!isFinite(r)||!isFinite(a)||!isFinite(p)||a===0) continue;
-        parts.push({ratio:r,amp:a,phase:p*Math.PI/180});
+        const pt={ratio:r,amp:a,phase:p*Math.PI/180};
+        if(rHasT){ pt.dyn={r:{expr:rE,vars:[...vars,"t"],vals:[...c]}}; meta.dynamicRatio=true; }
+        if(fads) pt.adsr=evalADSR(fads,[...c,r,hz,f0ref]);
+        parts.push(pt);
         if(parts.length>MAXPARTS) throw new Error("line "+(li+1)+": >"+MAXPARTS+" partials — lower ceiling"); }
     } else if(/^env\b/i.test(s)){
       let e=s.replace(/^env\b/i,"").trim(); if(e[0]===":") e=e.slice(1).trim();
-      const fe=compileExpr(e,["r","hz","f0"]); meta.envs.push(e);
-      for(const pt of parts){ const hz=pt.ratio*f0ref; const m=fe(pt.ratio,hz,f0ref); if(isFinite(m)) pt.amp*=m; }
+      if(hasT(e)){
+        compileExpr(e,["t","r","hz","f0","a"]); meta.gains.push("env "+e); meta.dynamicGain=true;
+        for(const pt of parts){ (pt.gains||(pt.gains=[])).push(e); }
+      } else {
+        const fe=compileExpr(e,["r","hz","f0"]); meta.envs.push(e);
+        for(const pt of parts){ const hz=pt.ratio*f0ref; const m=fe(pt.ratio,hz,f0ref); if(isFinite(m)) pt.amp*=m; }
+      }
+    } else if(/^(gain|shape|ampenv)\b/i.test(s)){
+      let e=s.replace(/^(gain|shape|ampenv)\b/i,"").trim(); if(e[0]===":") e=e.slice(1).trim();
+      compileExpr(e,["t","r","hz","f0","a"]); meta.gains.push(e); meta.dynamicGain=true;
+      for(const pt of parts){ (pt.gains||(pt.gains=[])).push(e); }
+    } else if(/^adsr\b/i.test(s)){
+      let e=s.replace(/^adsr\b/i,"").trim(); if(e[0]===":") e=e.slice(1).trim();
+      const vals=e.split(":").map(x=>x.trim());
+      if(vals.length!==4 || vals.some(x=>!x)) throw new Error("line "+(li+1)+": adsr needs attack:decay:sustain:release");
+      const fads=vals.map(x=>compileExpr(x,["r","hz","f0"])); meta.adsrs.push(vals);
+      for(const pt of parts){ const hz=pt.ratio*f0ref; pt.adsr=evalADSR(fads,[pt.ratio,hz,f0ref]); }
     } else {
       const p=s.split(":").map(x=>x.trim()); let r,a,ph;
-      try{ r=K(p[0]); }catch(err){ throw new Error("line "+(li+1)+": "+err.message); }
+      const rHasT=hasT(p[0]);
+      try{ r=rHasT?initialRatio(compileExpr(p[0],["t"]),[],li+1):K(p[0]); }catch(err){ throw new Error("line "+(li+1)+": "+err.message); }
+      if(p[1]&&hasT(p[1])) throw new Error("line "+(li+1)+": use gain/env for amplitude time functions");
       a=p.length>1?K(p[1]):1; ph=p.length>2?K(p[2]):0;
+      if(p.length>7) throw new Error("line "+(li+1)+": too many ':' fields");
+      if(p.length>3 && p.length<7) throw new Error("line "+(li+1)+": literal ADSR needs attack:decay:sustain:release");
       if(!isFinite(r)) throw new Error("line "+(li+1)+": bad ratio");
-      if(a!==0){ parts.push({ratio:r,amp:a,phase:(ph||0)*Math.PI/180}); meta.literals++; }
+      if(a!==0){
+        const pt={ratio:r,amp:a,phase:(ph||0)*Math.PI/180};
+        if(rHasT){ pt.dyn={r:{expr:p[0],vars:["t"],vals:[]}}; meta.dynamicRatio=true; }
+        if(p.length>=7) pt.adsr=ADSR(K(p[3]),K(p[4]),K(p[5]),K(p[6]));
+        parts.push(pt); meta.literals++;
+      }
     }
   }
   if(!parts.length) throw new Error("no partials");
@@ -388,44 +500,109 @@ function buildPartials(text,ceil,f0ref){
 }
 
 /* ---------- presets ---------- */
-const PRESETS={
-  "sine":"1",
-  "saw ∞":"# every harmonic, 1/n\nsum n=1..inf : n : 1/n",
-  "square ∞":"# odd harmonics\nsum n=1..inf : 2*n-1 : 1/(2*n-1)",
-  "triangle ∞":"sum n=1..inf : 2*n-1 : cos(pi*(n-1))/(2*n-1)^2",
-  "undertone":"# subharmonic series, ratio<1\nsum n=1..16 : 1/n : 1/n",
-  "primes":"# inharmonic — bell / metallic\nsum n=1..20 : prime(n) : 1/prime(n)",
-  "lowpassed saw":"sum n=1..64 : n : 1/n\nenv : exp(-r/12)",
-  "√n stretch":"# piano-like inharmonicity\nsum n=1..24 : n*sqrt(1+0.004*n*n) : 1/n",
-  "golden φ":"sum n=1..12 : phi^n : 1/n",
-  "lattice n·k":"# product sum, 6×3 grid\nsum n=1..6 k=1..3 : n*k : 1/(n*k)",
-  "odd·where":"# predicate filter\nsum n=1..48 : n : 1/n where odd(n)",
-  "split @800Hz":"# below X-relative 800Hz: full; above: odd only\nsum n=1..48 : n : iff(hz<800, 1/n, iff(odd(n),1/n,0))",
-  "keyfollow LP":"# lowpass that tracks the X pitch, in Hz\nsum n=1..64 : n : 1/n\nenv : iff(hz<2500, 1, 2500/hz)",
-  "formant @1.2k":"# fixed-Hz resonance peak (vowel-ish)\nsum n=1..48 : n : 1/n\nenv : 1/(1+((hz-1200)/400)^2)",
-  "fifth stack":"1:1\n1.5:0.6\n2.25:0.4\n3.375:0.25\n5.0625:0.16",
-  "inharm 2.3":"1:1\n2.3:0.6\n3.6:0.4\n5.1:0.25\n7.0:0.15",
-  "organ":"1:1\n2:.5\n3:.35\n4:.25\n6:.2\n8:.15"
-};
+const PRESET_GROUPS=[
+  ["basic",{
+    "sine":"1",
+    "organ":"1:1\n2:.5\n3:.35\n4:.25\n6:.2\n8:.15"
+  }],
+  ["classic overtones",{
+    "saw ∞":"# every harmonic, 1/n\nsum n=1..inf : n : 1/n",
+    "square ∞":"# odd harmonics\nsum n=1..inf : 2*n-1 : 1/(2*n-1)",
+    "triangle ∞":"sum n=1..inf : 2*n-1 : cos(pi*(n-1))/(2*n-1)^2",
+    "odd·where":"# predicate filter\nsum n=1..48 : n : 1/n where odd(n)",
+    "bright overtones":"# lifted upper harmonics\nsum n=1..48 : n : 1/sqrt(n)\nenv : exp(-r/36)",
+    "overtone phases":"# harmonic ladder with rotating phases\nsum n=1..32 : n : 1/n : mod(n,4)*90",
+    "overtone comb":"# harmonic series with every third partial pushed\nsum n=1..60 : n : iff(mod(n,3)==0, 1.65/n, .55/n)"
+  }],
+  ["undertones",{
+    "undertone":"# subharmonic series, ratio<1\nsum n=1..16 : 1/n : 1/n",
+    "undertone choir":"# strong root plus quiet subharmonic bed\n1:1\nsum n=2..24 : 1/n : .75/n",
+    "deep undertone organ":"# sub-octave and sub-fifth stack\n1:1\n1/2:.7\n1/3:.55\n1/4:.38\n1/5:.28\n1/6:.22\n2:.25\n3:.18",
+    "undertone phases":"# subharmonics with phase braid\nsum n=1..18 : 1/n : 1/sqrt(n) : mod(n,4)*90"
+  }],
+  ["over + under",{
+    "mirror bloom":"# overtones above, undertones below\n1:1\nsum n=2..20 : n : .55/n\nsum n=2..20 : 1/n : .45/n",
+    "centered halo":"# octave-bracketed undertones and overtones\n1/4:.18\n1/3:.22\n1/2:.35\n1:1\n2:.5\n3:.32\n4:.24\n5:.18\n6:.14",
+    "reciprocal shimmer":"# n and 1/n pairs, alternating phase\nsum n=1..16 : n : .5/n : mod(n,2)*180\nsum n=2..16 : 1/n : .5/n : mod(n,2)*180"
+  }],
+  ["motion / ADSR",{
+    "high partial bloom":"# high overtones enter later and release longer\nsum n=1..32 : n : 1/n\nadsr : .004+.012*r : .05+.006*r : clamp(1-r/48,.18,1) : .12+.018*r",
+    "undertone swell":"# subharmonics breathe slower as they go lower\n1:1\nsum n=2..18 : 1/n : .8/n\nadsr : clamp(.02+.035/r,.02,.75) : .18 : clamp(.25+.04/r,.25,.9) : clamp(.18+.05/r,.2,1.2)",
+    "indexed pluck rain":"# ADSR columns after phase: attack:decay:sustain:release\nsum n=1..36 : n : 1/n : mod(n,3)*40 : .001+.002*n : .04+.006*n : .18 : .05+.008*n",
+    "pitch LFO ratios":"# drift as r(t): each partial wobbles in cents-ish proportion\nsum n=1..28 : n*(1+.002*sin(tau*.35*t+n)) : 1/n",
+    "ascending ratios":"# monotonic pitch drift in the ratio expression\nsum n=1..24 : n*(1+.06*t) : 1/n",
+    "t+1 riser":"# literal r(t): starts at ratio 1, reaches ratio 2 after one second\nt+1 : 1\ngain : adsr(t,.01,.25,.85,.4)",
+    "n times t+1 fan":"# harmonic fan opens upward from normal harmonic positions\nsum n=1..12 : n*(t+1) : 1/n\ngain : adsr(t,.02,.3,.7,.5)",
+    "sine gain gate":"# gain functions clip 0..1 before multiplying a\nsum n=1..32 : n : 1/n\ngain : sin(tau*.5*t)/2+.5"
+  }],
+  ["inharmonic / math",{
+    "primes":"# inharmonic — bell / metallic\nsum n=1..20 : prime(n) : 1/prime(n)",
+    "√n stretch":"# piano-like inharmonicity\nsum n=1..24 : n*sqrt(1+0.004*n*n) : 1/n",
+    "golden φ":"sum n=1..12 : phi^n : 1/n",
+    "lattice n·k":"# product sum, 6×3 grid\nsum n=1..6 k=1..3 : n*k : 1/(n*k)",
+    "fifth stack":"1:1\n1.5:0.6\n2.25:0.4\n3.375:0.25\n5.0625:0.16",
+    "inharm 2.3":"1:1\n2.3:0.6\n3.6:0.4\n5.1:0.25\n7.0:0.15"
+  }],
+  ["filters / forms",{
+    "lowpassed saw":"sum n=1..64 : n : 1/n\nenv : exp(-r/12)",
+    "split @800Hz":"# below X-relative 800Hz: full; above: odd only\nsum n=1..48 : n : iff(hz<800, 1/n, iff(odd(n),1/n,0))",
+    "keyfollow LP":"# lowpass that tracks the X pitch, in Hz\nsum n=1..64 : n : 1/n\nenv : iff(hz<2500, 1, 2500/hz)",
+    "formant @1.2k":"# fixed-Hz resonance peak (vowel-ish)\nsum n=1..48 : n : 1/n\nenv : 1/(1+((hz-1200)/400)^2)"
+  }]
+];
+const PRESETS={};
+PRESET_GROUPS.forEach(g=>Object.assign(PRESETS,g[1]));
 
 /* ================= AUDIO ================= */
 const WORKLET_SRC=`
+function clip01(x){return Math.max(0,Math.min(1,isFinite(x)?x:0));}
+const WPRIMES=(()=>{const a=[],lim=4000,s=new Uint8Array(lim).fill(1);for(let i=2;i<lim;i++){if(s[i]){a.push(i);for(let j=i*i;j<lim;j+=i)s[j]=0;}}return a;})();
+function prime(n){n=Math.max(1,Math.round(n));return WPRIMES[n-1]||WPRIMES[WPRIMES.length-1];}
+function fib(n){n=Math.max(1,Math.round(n));let a=1,b=1;for(let i=2;i<n;i++){const c=a+b;a=b;b=c;}return b;}
+function adsrShape(t,a,d,s,r){t=Math.max(0,t);a=Math.max(.0001,a);d=Math.max(.0001,d);s=clip01(s);if(t<a)return t/a;if(t<a+d)return 1+(s-1)*((t-a)/d);return s;}
+const WENV={prime,fib,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,log:Math.log,
+  sqrt:Math.sqrt,pow:Math.pow,abs:Math.abs,floor:Math.floor,round:Math.round,sign:Math.sign,
+  min:Math.min,max:Math.max,pi:Math.PI,e:Math.E,tau:2*Math.PI,phi:(1+Math.sqrt(5))/2,
+  iff:(c,a,b)=>c?a:b, odd:n=>(Math.round(n)%2!==0)?1:0, even:n=>(Math.round(n)%2===0)?1:0,
+  not:x=>x?0:1, clamp:(x,lo,hi)=>Math.min(hi,Math.max(lo,x)), step:(edge,x)=>x>=edge?1:0,
+  between:(x,lo,hi)=>(x>=lo&&x<=hi)?1:0, mod:(a,b)=>((a%b)+b)%b, clip01, adsrShape, adsr:adsrShape};
+const WKEYS=Object.keys(WENV), WVALS=WKEYS.map(k=>WENV[k]);
+function wcompile(expr,vars){ expr=String(expr).replace(/\\*\\*/g,"^").replace(/\\^/g,"**"); return new Function(...vars,...WKEYS,"return ("+expr+");"); }
+function dynCall(d,args){ try{ const v=d.fn(...args,...WVALS); return isFinite(v)?v:null; }catch(e){ return null; } }
 class Additive extends AudioWorkletProcessor{
   static get parameterDescriptors(){ return [{name:'f0',defaultValue:440,minValue:0,maxValue:24000,automationRate:'a-rate'}]; }
   constructor(o){super();const p=o.processorOptions;
-    this.P=p.parts;this.dc=p.driftCents||0;this.dr=p.driftRate||0;
+    this.P=p.parts;this.dc=p.driftCents||0;this.dr=p.driftRate||0;this.t0=p.startAt||currentTime;
     this.ph=this.P.map(x=>x.phase||0);this.rnd=this.P.map(()=>Math.random()*2-1);
-    this.lfo=this.P.map(()=>Math.random()*6.28318);
+    this.lfo=this.P.map(()=>Math.random()*6.28318);this.relAt=null;this.relLevel=this.P.map(()=>0);this.killAt=Infinity;
+    this.expr=this.P.map(p=>({r:p.dyn&&p.dyn.r?{...p.dyn.r,fn:wcompile(p.dyn.r.expr,p.dyn.r.vars)}:null,
+      gains:(p.gains||[]).map(expr=>({expr,fn:wcompile(expr,["t","r","hz","f0","a"])}))}));
     this.norm=this.P.reduce((s,x)=>s+Math.abs(x.amp),0)||1;this.dead=false;
-    this.port.onmessage=e=>{if(e.data==='stop')this.dead=true;};}
+    this.port.onmessage=e=>{const d=e.data||{};
+      if(d==='stop'||d.type==='stop')this.dead=true;
+      else if(d.type==='release'){ const at=d.at||currentTime;
+        this.relLevel=this.P.map((_,i)=>this.ads(i,at));
+        this.relAt=at; this.killAt=at+this.P.reduce((m,p)=>Math.max(m,(p.adsr&&p.adsr.r)||0.02),0)+0.08; }
+    };}
+  ads(k,t){ const p=this.P[k],e=p.adsr||{a:.001,d:.001,s:1,r:.4},age=t-this.t0;
+    if(age<0)return 0; const A=Math.max(.0001,e.a||.001),D=Math.max(.0001,e.d||.001),S=Math.max(0,Math.min(1,e.s==null?1:e.s));
+    if(age<A)return age/A; if(age<A+D)return 1+(S-1)*((age-A)/D); return S; }
+  penv(k,t){ if(this.relAt!=null && t>=this.relAt){
+      const R=Math.max(.0001,(this.P[k].adsr&&this.P[k].adsr.r)||.02);
+      return Math.max(0,this.relLevel[k]*(1-(t-this.relAt)/R)); }
+    return this.ads(k,t); }
   process(_,outs,params){ if(this.dead)return false; const out=outs[0][0]; if(!out)return true;
     const sr=sampleRate,N=out.length,P=this.P,TAU=6.28318530718,f0a=params.f0;
     for(let i=0;i<N;i++){ const t=currentTime+i/sr; const f0=f0a.length>1?f0a[i]:f0a[0]; let s=0;
       for(let k=0;k<P.length;k++){ let c=this.rnd[k]*this.dc;
         if(this.dr>0) c+=Math.sin(TAU*this.dr*t+this.lfo[k])*this.dc;
-        const f=f0*P[k].ratio*Math.pow(2,c/1200);
-        this.ph[k]+=TAU*f/sr; s+=P[k].amp*Math.sin(this.ph[k]); }
+        const age=t-this.t0, ex=this.expr[k]; let ratio=P[k].ratio;
+        if(ex.r){ const v=dynCall(ex.r,[...(ex.r.vals||[]),age]); if(v!=null) ratio=Math.max(0,v); }
+        const hz=f0*ratio, f=hz*Math.pow(2,c/1200), eg=this.penv(k,t);
+        let g=1; for(const ge of ex.gains){ const v=dynCall(ge,[age,ratio,hz,f0,Math.abs(P[k].amp)]); if(v!=null) g*=clip01(v); }
+        this.ph[k]+=TAU*f/sr; if(eg>0&&g>0) s+=P[k].amp*eg*g*Math.sin(this.ph[k]); }
       out[i]=s/this.norm; }
+    if(currentTime>this.killAt) return false;
     return true; }
 }
 registerProcessor('additive',Additive);`;
@@ -462,43 +639,81 @@ const TUNING={ edo:12,
 let NOTE_SEQ=0;
 function makeNote(hz,vel,opts){ opts=opts||{}; return {
   id:"n"+(NOTE_SEQ++), pts:[{t:0,hz,curve:"linear"}], vel:(vel==null?1:vel), voice:opts.voice||"add",
-  startSec:null, dur:null, _env:null,_node:null,_oscs:null,_param:null,_released:false }; }
+  startSec:null, dur:null, _env:null,_node:null,_oscs:null,_param:null,_baseHz:null,_driftTimer:null,_released:false }; }
 function rampParam(pm,val,at,curve){ val=Math.max(1e-4,val);
   if(curve==="step") pm.setValueAtTime(val,at);
   else if(curve==="exp"||curve==="exponential"){ try{pm.exponentialRampToValueAtTime(val,at);}catch(e){pm.linearRampToValueAtTime(val,at);} }
   else pm.linearRampToValueAtTime(val,at); }
+function defaultADSR(){ return ADSR(+el("atk").value,+el("dec").value,+el("sus").value,+el("rel").value); }
+function formulaOwnsEnv(){ return !!(META.adsrs.length||META.gains.length||PARTIALS.some(p=>p.adsr||(p.gains&&p.gains.length))); }
+function formulaOwnsDrift(){ return !!(META.dynamicRatio||PARTIALS.some(p=>p.dyn&&p.dyn.r)); }
+function partADSR(p){ const e=p.adsr||(formulaOwnsEnv()?ADSR(.001,.001,1,.02):defaultADSR()); return ADSR(e.a,e.d,e.s,e.r); }
+function audioParts(){ return PARTIALS.map(p=>({ratio:p.ratio,amp:p.amp,phase:p.phase,adsr:partADSR(p),dyn:p.dyn,gains:p.gains||[]})); }
+function maxPartRelease(parts,fast){ return fast?0.02:Math.max(0.02,...(parts||audioParts()).map(p=>p.adsr.r)); }
+function adsLevel(e,age){ if(age<=0)return 0; if(age<e.a)return age/e.a; if(age<e.a+e.d)return 1+(e.s-1)*((age-e.a)/e.d); return e.s; }
+function schedulePartGain(g,base,e,at,dur){
+  const A=e.a,D=e.d,S=e.s,rel=dur==null?null:at+dur;
+  g.gain.cancelScheduledValues(at); g.gain.setValueAtTime(0,at);
+  if(rel!=null && rel<at+A){ g.gain.linearRampToValueAtTime(base*adsLevel(e,dur),rel); g.gain.linearRampToValueAtTime(0,rel+e.r); return; }
+  g.gain.linearRampToValueAtTime(base,at+A);
+  if(rel!=null && rel<at+A+D){ g.gain.linearRampToValueAtTime(base*adsLevel(e,dur),rel); g.gain.linearRampToValueAtTime(0,rel+e.r); return; }
+  g.gain.linearRampToValueAtTime(base*S,at+A+D);
+  if(rel!=null){ g.gain.setValueAtTime(base*adsLevel(e,dur),rel); g.gain.linearRampToValueAtTime(0,rel+e.r); }
+}
+function compileDynRatio(d){ return d?{...d,fn:compileExpr(d.expr,d.vars)}:null; }
+function dynRatioAt(d,age,fallback){ if(!d)return fallback;
+  try{ const v=d.fn(...(d.vals||[]),age); return (isFinite(v)&&v>=0)?v:fallback; }catch(e){ return fallback; } }
+function compileGainFns(gains){ return (gains||[]).map(expr=>({expr,fn:compileExpr(expr,["t","r","hz","f0","a"])})); }
+function dynGainAt(fns,age,ratio,hz,f0,a){ let g=1;
+  for(const fn of fns){ try{ const v=fn.fn(age,ratio,hz,f0,a); if(isFinite(v))g*=clip01(v); }catch(e){} }
+  return g;
+}
+function driftedHz(baseHz,ratio,dc,dr,rnd,lfo,t){ let c=rnd*dc; if(dr>0)c+=Math.sin(2*Math.PI*dr*t+lfo)*dc; return Math.max(1e-4,baseHz*ratio*Math.pow(2,c/1200)); }
+function tickOscDrift(note,at){ if(!note._oscs)return;
+  const age=Math.max(0,at-(note.startSec||at));
+  for(const x of note._oscs){ const ratio=dynRatioAt(x.dynR,age,x.ratio);
+    const f0=note._baseHz||note.pts[0].hz, f=driftedHz(f0,ratio,note._dc||0,note._dr||0,x.rnd,x.lfo,at);
+    try{x.o.frequency.setTargetAtTime(f,at,0.015);}catch(e){}
+    if(x.gainFns&&x.gainFns.length){ const gain=x.baseGain*dynGainAt(x.gainFns,age,ratio,f,f0,Math.abs(x.amp)); try{x.g.gain.setTargetAtTime(gain,at,0.015);}catch(e){} }
+  }
+}
 function realizeNote(note,whenSec){
   const now=(whenSec!=null?whenSec:AC.currentTime); note.startSec=now;
   const env=AC.createGain(); env.gain.value=0; env.connect(master); note._env=env;
-  const dc=+el("driftC").value, dr=+el("driftR").value;
-  const parts=PARTIALS.map(p=>({ratio:p.ratio,amp:p.amp,phase:p.phase}));
+  const dc=formulaOwnsDrift()?0:+el("driftC").value, dr=formulaOwnsDrift()?0:+el("driftR").value;
+  const parts=audioParts(); note._parts=parts;
   if(workletReady){
     const node=new AudioWorkletNode(AC,"additive",{numberOfInputs:0,numberOfOutputs:1,
-      outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr}});
+      outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr,startAt:now}});
     const f0=node.parameters.get("f0"); note._param=f0;                 // pitch is an automatable param
     f0.cancelScheduledValues(now); f0.setValueAtTime(Math.max(1e-4,note.pts[0].hz),now);
     for(let i=1;i<note.pts.length;i++){ const pt=note.pts[i]; rampParam(f0,pt.hz,now+pt.t,pt.curve); }
     node.connect(env); note._node=node;
   } else {
-    const norm=PARTIALS.reduce((s,p)=>s+Math.abs(p.amp),0)||1; note._oscs=[]; const f0=note.pts[0].hz;
-    for(const p of PARTIALS){ const f=f0*p.ratio; if(f<=0||f>AC.sampleRate/2)continue;
-      const o=AC.createOscillator(); o.type="sine"; o.frequency.value=f;
-      const g=AC.createGain(); g.gain.value=p.amp/norm; o.connect(g); g.connect(env); o.start(now); note._oscs.push({o,ratio:p.ratio}); } }
-  const A=+el("atk").value,D=+el("dec").value,v=note.vel,S=+el("sus").value*(0.3+0.7*v),peak=0.9*(0.3+0.7*v);
+    const norm=parts.reduce((s,p)=>s+Math.abs(p.amp),0)||1; note._oscs=[]; const f0=note.pts[0].hz; note._baseHz=f0; note._dc=dc; note._dr=dr;
+    for(const p of parts){ const dynR=compileDynRatio(p.dyn&&p.dyn.r), ratio0=dynRatioAt(dynR,0,p.ratio), f=f0*ratio0; if(f<=0||f>AC.sampleRate/2)continue;
+      const rnd=Math.random()*2-1,lfo=Math.random()*Math.PI*2,gainFns=compileGainFns(p.gains),baseGain=p.amp/norm;
+      const o=AC.createOscillator(); o.type="sine"; o.frequency.value=driftedHz(f0,ratio0,dc,dr,rnd,lfo,now);
+      const g=AC.createGain(); if(gainFns.length) g.gain.setValueAtTime(baseGain*dynGainAt(gainFns,0,ratio0,f,f0,Math.abs(p.amp)),now); else schedulePartGain(g,baseGain,p.adsr,now);
+      o.connect(g); g.connect(env); o.start(now); note._oscs.push({o,g,ratio:p.ratio,dynR,gainFns,baseGain,amp:p.amp,adsr:p.adsr,rnd,lfo}); }
+    if((dc>0&&dr>0)||parts.some(p=>(p.dyn&&p.dyn.r)||(p.gains&&p.gains.length))) note._driftTimer=setInterval(()=>tickOscDrift(note,AC.currentTime),33); }
+  const v=note.vel,peak=0.9*(0.3+0.7*v);
   env.gain.cancelScheduledValues(now); env.gain.setValueAtTime(0,now);
-  env.gain.linearRampToValueAtTime(peak,now+A); env.gain.linearRampToValueAtTime(S,now+A+D);
+  env.gain.linearRampToValueAtTime(peak,now+0.003);
   return note; }
 function releaseNote(note,fast){ if(!note||note._released)return; note._released=true;
-  const now=AC.currentTime, R=fast?0.02:+el("rel").value; note.dur=Math.max(0,now-(note.startSec||now));
+  const now=AC.currentTime, parts=note._parts||audioParts(), R=maxPartRelease(parts,fast); note.dur=Math.max(0,now-(note.startSec||now));
   const env=note._env; env.gain.cancelScheduledValues(now); env.gain.setValueAtTime(env.gain.value,now);
-  env.gain.linearRampToValueAtTime(0,now+R);
-  if(note._node) setTimeout(()=>{ try{note._node.port.postMessage("stop");note._node.disconnect();env.disconnect();}catch(e){} },(R+0.06)*1000);
-  if(note._oscs){ note._oscs.forEach(x=>{try{x.o.stop(now+R+0.03);}catch(e){}}); setTimeout(()=>{try{env.disconnect();}catch(e){}},(R+0.08)*1000); } }
+  if(note._node){ note._node.port.postMessage(fast?{type:"stop"}:{type:"release",at:now});
+    setTimeout(()=>{ try{note._node.port.postMessage("stop");note._node.disconnect();env.disconnect();}catch(e){} },(R+0.08)*1000); }
+  if(note._driftTimer){ clearInterval(note._driftTimer); note._driftTimer=null; }
+  if(note._oscs){ note._oscs.forEach(x=>{try{ const r=fast?0.02:x.adsr.r; try{x.g.gain.cancelAndHoldAtTime(now);}catch(_){x.g.gain.cancelScheduledValues(now); x.g.gain.setValueAtTime(x.g.gain.value,now);} x.g.gain.linearRampToValueAtTime(0,now+r); x.o.stop(now+r+0.03);}catch(e){}});
+    setTimeout(()=>{try{env.disconnect();}catch(e){}},(R+0.08)*1000); } }
 /* continuous pitch — the seam for glides / ribbon / MPE (unused by discrete keys yet) */
 function bendNote(note,hz,glideSec,curve){ if(!note||!AC)return; const now=AC.currentTime, at=now+(glideSec||0);
   note.pts.push({t:Math.max(0,now-(note.startSec||now))+(glideSec||0),hz,curve:curve||"linear"});
   if(note._param) rampParam(note._param,hz,at,curve);
-  else if(note._oscs) note._oscs.forEach(x=>{try{x.o.frequency.linearRampToValueAtTime(Math.max(1e-4, hz * x.ratio), at);}catch(e){}}); }
+  else if(note._oscs){ note._baseHz=hz; note._oscs.forEach(x=>{try{x.o.frequency.linearRampToValueAtTime(Math.max(1e-4, hz * x.ratio), at);}catch(e){}}); } }
 
 /* ---- VOICES: keyed by input id. ANY source (keys, MIDI, ribbon, Tabota) → same engine ---- */
 function startNote(id,hz,vel){ if(!AC||!PARTIALS.length)return null;
@@ -563,31 +778,34 @@ function resolvedToNotes(out){
 }
 
 let SCORE=null, scoreNodes=[], scorePlaying=false, scoreTimer=null;
-function killVoice(rec){ try{ if(rec.node){rec.node.port.postMessage("stop");rec.node.disconnect();} if(rec.oscs)rec.oscs.forEach(x=>{try{x.o.stop();}catch(e){}}); rec.env.disconnect(); }catch(e){} }
+function killVoice(rec){ try{ if(rec.driftTimer)clearInterval(rec.driftTimer); if(rec.node){rec.node.port.postMessage("stop");rec.node.disconnect();} if(rec.oscs)rec.oscs.forEach(x=>{try{x.o.stop();}catch(e){}}); rec.env.disconnect(); }catch(e){} }
 function scheduleVoice(note,at,dur){
   const env=AC.createGain(); env.gain.value=0; env.connect(master);
-  const dc=+el("driftC").value, dr=+el("driftR").value;
-  const parts=PARTIALS.map(p=>({ratio:p.ratio,amp:p.amp,phase:p.phase}));
-  const rec={node:null,oscs:null,env};
+  const dc=formulaOwnsDrift()?0:+el("driftC").value, dr=formulaOwnsDrift()?0:+el("driftR").value;
+  const parts=audioParts(), maxR=maxPartRelease(parts);
+  const rec={node:null,oscs:null,env,baseHz:note.pts[0].hz,dc,dr,driftTimer:null};
   if(workletReady){
-    const node=new AudioWorkletNode(AC,"additive",{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr}});
+    const node=new AudioWorkletNode(AC,"additive",{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr,startAt:at}});
     const f0=node.parameters.get("f0"); f0.setValueAtTime(Math.max(1e-4,note.pts[0].hz),at);
     for(let i=1;i<note.pts.length;i++) rampParam(f0,note.pts[i].hz,at+note.pts[i].t,note.pts[i].curve);
-    node.connect(env); rec.node=node;
-  } else { rec.oscs=[]; const norm=PARTIALS.reduce((s,p)=>s+Math.abs(p.amp),0)||1; const f0=note.pts[0].hz;
-    for(const p of PARTIALS){ const f=f0*p.ratio; if(f<=0||f>AC.sampleRate/2)continue;
-      const o=AC.createOscillator(); o.type="sine"; o.frequency.value=f; const g=AC.createGain(); g.gain.value=p.amp/norm; o.connect(g); g.connect(env); o.start(at); rec.oscs.push({o,ratio:p.ratio}); } }
-  const A=+el("atk").value,D=+el("dec").value,v=note.vel,S=Math.max(1e-4,+el("sus").value*(0.3+0.7*v)),peak=0.9*(0.3+0.7*v),R=+el("rel").value;
-  env.gain.setValueAtTime(1e-4,at); env.gain.linearRampToValueAtTime(peak,at+A); env.gain.linearRampToValueAtTime(S,at+Math.min(dur,A+D));
-  const rel=at+dur; env.gain.setValueAtTime(env.gain.value,rel); env.gain.setValueAtTime(S,rel); env.gain.linearRampToValueAtTime(1e-4,rel+R);
-  const killAt=rel+R+0.05; if(rec.oscs) rec.oscs.forEach(x=>{try{x.o.stop(killAt);}catch(e){}});
+    node.connect(env); rec.node=node; node.port.postMessage({type:"release",at:at+dur});
+  } else { rec.oscs=[]; const norm=parts.reduce((s,p)=>s+Math.abs(p.amp),0)||1; const f0=note.pts[0].hz;
+    for(const p of parts){ const dynR=compileDynRatio(p.dyn&&p.dyn.r), ratio0=dynRatioAt(dynR,0,p.ratio), f=f0*ratio0; if(f<=0||f>AC.sampleRate/2)continue;
+      const rnd=Math.random()*2-1,lfo=Math.random()*Math.PI*2,gainFns=compileGainFns(p.gains),baseGain=p.amp/norm;
+      const o=AC.createOscillator(); o.type="sine"; o.frequency.value=driftedHz(f0,ratio0,dc,dr,rnd,lfo,at); const g=AC.createGain();
+      if(gainFns.length) g.gain.setValueAtTime(baseGain*dynGainAt(gainFns,0,ratio0,f,f0,Math.abs(p.amp)),at); else schedulePartGain(g,baseGain,p.adsr,at,dur);
+      o.connect(g); g.connect(env); o.start(at); rec.oscs.push({o,g,ratio:p.ratio,dynR,gainFns,baseGain,amp:p.amp,adsr:p.adsr,rnd,lfo}); }
+    if((dc>0&&dr>0)||parts.some(p=>(p.dyn&&p.dyn.r)||(p.gains&&p.gains.length))) rec.driftTimer=setInterval(()=>{ const t=AC.currentTime, age=Math.max(0,t-at); for(const x of rec.oscs){ const ratio=dynRatioAt(x.dynR,age,x.ratio), f=driftedHz(rec.baseHz,ratio,dc,dr,x.rnd,x.lfo,t); try{x.o.frequency.setTargetAtTime(f,t,0.015);}catch(e){} if(x.gainFns&&x.gainFns.length){ const gain=x.baseGain*dynGainAt(x.gainFns,age,ratio,f,rec.baseHz,Math.abs(x.amp)); try{x.g.gain.setTargetAtTime(gain,t,0.015);}catch(e){} } } },33); }
+  const v=note.vel,peak=0.9*(0.3+0.7*v),rel=at+dur;
+  env.gain.setValueAtTime(0,at); env.gain.linearRampToValueAtTime(peak,at+0.003); env.gain.setValueAtTime(peak,rel+maxR); env.gain.linearRampToValueAtTime(0,rel+maxR+0.02);
+  const killAt=rel+maxR+0.05; if(rec.oscs) rec.oscs.forEach(x=>{try{x.o.stop(rel+x.adsr.r+0.03);}catch(e){}});
   scoreNodes.push(rec); setTimeout(()=>{ const i=scoreNodes.indexOf(rec); if(i>=0){killVoice(rec);scoreNodes.splice(i,1);} }, Math.max(0,(killAt-AC.currentTime)*1000));
 }
 function playScore(){ if(!SCORE||!SCORE.notes.length) return;
   initAudio().then(()=>{ if(!AC)return; if(scorePlaying){ stopScore(); return; }
     scorePlaying=true; el("tabPlay").textContent="■ stop";
     const t0=AC.currentTime+0.12; for(const n of SCORE.notes) scheduleVoice(n,t0+n.startSec,n.dur);
-    scoreTimer=setTimeout(stopScore,(SCORE.total+ +el("rel").value+0.4)*1000); }); }
+    scoreTimer=setTimeout(stopScore,(SCORE.total+maxPartRelease()+0.4)*1000); }); }
 function stopScore(){ scorePlaying=false; clearTimeout(scoreTimer); if(el("tabPlay")) el("tabPlay").textContent="▶ score";
   scoreNodes.forEach(killVoice); scoreNodes=[]; }
 function loadTabota(text,name){
@@ -612,27 +830,33 @@ async function liveCheck(){ if(location.protocol==="file:") return;
     const h=await sha16(await res.text()); if(h && h!==CANON_SHA){ el("tabUpd").hidden=false; console.info("[aliquoto] newer tabota-resolve.js available — re-vendor from",TABOTA_LIVE_URL); } }catch(e){} }
 
 /* ================= STATE / APPLY ================= */
-let PARTIALS=[], META={sums:[],envs:[],literals:0}, edited=false;
+let PARTIALS=[], META={sums:[],envs:[],gains:[],adsrs:[],literals:0,dynamicRatio:false,dynamicGain:false}, edited=false;
 const getXref=()=>+el("xref").value||261.63;
 function applyGrammar(){
   try{ const ceil=Math.max(1,Math.min(256,+el("ceil").value||32));
     const {parts,meta}=buildPartials(el("grammar").value,ceil,getXref());
     PARTIALS=parts; META=meta; edited=false;
     el("err").textContent="✓ "+PARTIALS.length+" partial"+(PARTIALS.length!==1?"s":"");
-    el("err").className="err ok"; drawSpec(); drawWaveStatic(); readout();
+    el("err").className="err ok"; syncFormulaControls(); drawSpec(); drawWaveStatic(); readout();
     if(el("modal").classList.contains("open")) renderModal();
   }catch(e){ el("err").textContent="✕ "+e.message; el("err").className="err"; }
+}
+function lockSliders(ids,locked){ ids.forEach(id=>{ const s=el(id); if(!s)return; s.disabled=locked; const row=s.closest(".sliderrow"); if(row)row.classList.toggle("locked",locked); }); }
+function syncFormulaControls(){
+  lockSliders(["atk","dec","sus","rel"],formulaOwnsEnv());
+  lockSliders(["driftC","driftR"],formulaOwnsDrift());
 }
 function readout(){
   if(!PARTIALS.length){ el("readout").innerHTML=""; return; }
   const rs=PARTIALS.map(p=>p.ratio); const sub=rs.filter(r=>r<1).length;
   const inh=PARTIALS.some(p=>Math.abs(p.ratio-Math.round(p.ratio))>1e-6);
+  const motion=[formulaOwnsDrift()?"r(t)":null,formulaOwnsEnv()?"gain(t)":null].filter(Boolean).join(" · ");
   el("readout").innerHTML=
     `<span>N=<b>${PARTIALS.length}</b></span>`+
     `<span>ceil <b>${el("ceil").value}</b></span>`+
     `<span>X <b>${(+getXref().toFixed(2))}</b>Hz</span>`+
     `<span>r <b>${(+Math.min(...rs).toFixed(3))}</b>..<b>${(+Math.max(...rs).toFixed(3))}</b></span>`+
-    `<span>${sub?"<b>"+sub+"</b> sub · ":""}${inh?"inharmonic":"harmonic"}</span>`+
+    `<span>${sub?"<b>"+sub+"</b> sub · ":""}${inh?"inharmonic":"harmonic"}${motion?" · "+motion:""}</span>`+
     (edited?`<span class="warn">◆ edited</span>`:``)+
     `<span>${AC?(workletReady?"phase-exact":"osc"):"idle"}</span>`;
 }
@@ -716,7 +940,7 @@ function tex(expr){ let s=(expr||"").trim(); if(!s)return "";
   return s; }
 function KR(latex,elm,disp){ try{ if(window.katex){ katex.render(latex,elm,{displayMode:!!disp,throwOnError:false}); } else elm.textContent=latex; }catch(e){ elm.textContent=latex; } }
 function renderModal(){
-  KR("y(t)=\\sum_{n} a(n)\\,\\sin\\!\\big(2\\pi\\, r(n)\\, f_0\\, t + p(n)\\big)", el("eqGeneral"), true);
+  KR("y(t)=\\sum_{n} e_n(t)\\,a(n)\\,\\sin\\!\\big(2\\pi\\, r_n(t)\\, f_0\\, t + p(n)\\big)", el("eqGeneral"), true);
   // live
   let live="";
   if(META.sums.length){
@@ -725,7 +949,7 @@ function renderModal(){
       const idx = sm.vars.length>1 ? sm.vars.join(",") : v;
       const bound = sm.vars.length>1 ? "" : `_{${v}=${lo}}^{${hi===+el("ceil").value?"\\,N":hi}}`;
       const aT=tex(sm.a), pShow=sm.p&&sm.p.trim()!=="0";
-      const inner=`${aT?aT+"\\,":""}\\sin\\!\\big(2\\pi\\,${tex(sm.r)}\\,f_0 t${pShow?"+"+tex(sm.p):""}\\big)`;
+      const inner=`e_{${idx}}(t)\\,${aT?aT+"\\,":""}\\sin\\!\\big(2\\pi\\,${tex(sm.r)}\\,f_0 t${pShow?"+"+tex(sm.p):""}\\big)`;
       return `\\sum${bound} ${inner}`;
     }).join(" \\;+\\; ");
     if(META.literals) live+=" \\;+\\; (\\text{literals})";
@@ -733,16 +957,20 @@ function renderModal(){
   KR("y(t)="+live, el("eqLive"), true);
   // defs
   let defs="";
-  META.sums.forEach((sm,i)=>{ defs+=`<div>sum ${i+1}: <b>${sm.decl}</b> · r=<b>${sm.r}</b> · a=<b>${sm.a}</b> · p=<b>${sm.p}</b>°${sm.where?` · <span style="color:var(--amber)">where</span> <b>${sm.where}</b>`:""}</div>`; });
+  META.sums.forEach((sm,i)=>{ const ads=sm.adsr?` · adsr=<b>${sm.adsr.join(" : ")}</b>`:"";
+    defs+=`<div>sum ${i+1}: <b>${sm.decl}</b> · r=<b>${sm.r}</b> · a=<b>${sm.a}</b> · p=<b>${sm.p}</b>°${ads}${sm.where?` · <span style="color:var(--amber)">where</span> <b>${sm.where}</b>`:""}</div>`; });
   if(META.envs.length) defs+=`<div>env: â(r)=<b>${META.envs.join(" · ")}</b></div>`;
+  if(META.gains.length) defs+=`<div>gain(t): <b>${META.gains.join(" · ")}</b> <span style="color:var(--faint)">(clipped 0..1)</span></div>`;
+  if(META.adsrs.length) defs+=`<div>adsr: <b>${META.adsrs.map(x=>x.join(" : ")).join(" · ")}</b></div>`;
   el("eqDefs").innerHTML=defs||"<div>explicit partial list</div>";
   // env defs + plot
   el("envDefs").innerHTML = META.envs.length ? `â(r) = ${META.envs.map(e=>"<b>"+e+"</b>").join(" × ")}` : "no <b>env</b> line — â(r)=1 (flat).";
   drawEnvPlot();
   // table
   const rows=PARTIALS.map((p,i)=>{ const cls=p.ratio<1?"sub":(Math.abs(p.ratio-Math.round(p.ratio))>1e-6?"inh":"");
-    return `<tr><td>${i+1}</td><td class="${cls}">${(+p.ratio.toFixed(5))}</td><td>${(+p.amp.toFixed(5))}</td><td>${(+(p.phase*180/Math.PI).toFixed(1))}</td></tr>`; }).join("");
-  el("partTable").innerHTML=`<thead><tr><th>n</th><th>ratio r</th><th>amp a</th><th>phase°</th></tr></thead><tbody>${rows}</tbody>`;
+    const e=partADSR(p);
+    return `<tr><td>${i+1}</td><td class="${cls}">${(+p.ratio.toFixed(5))}</td><td>${(+p.amp.toFixed(5))}</td><td>${(+(p.phase*180/Math.PI).toFixed(1))}</td><td>${(+e.a.toFixed(3))}</td><td>${(+e.d.toFixed(3))}</td><td>${(+e.s.toFixed(3))}</td><td>${(+e.r.toFixed(3))}</td></tr>`; }).join("");
+  el("partTable").innerHTML=`<thead><tr><th>n</th><th>ratio r</th><th>amp a</th><th>phase°</th><th>A</th><th>D</th><th>S</th><th>R</th></tr></thead><tbody>${rows}</tbody>`;
   renderTabPane();
 }
 function drawEnvPlot(){
@@ -883,11 +1111,23 @@ function onMIDI(ev){ const [st,d1,d2]=ev.data, cmd=st&0xf0;
 
 /* ================= WIRE ================= */
 function slider(id,out,fmt,cb){ const s=el(id),o=el(out); const u=()=>{o.textContent=fmt(+s.value);cb&&cb(+s.value);}; s.addEventListener("input",u); u(); }
+function partialLine(p,ampScale){
+  const amp=ampScale==null?p.amp:p.amp*ampScale, ph=+(p.phase*180/Math.PI).toFixed(1);
+  let line=(+p.ratio.toFixed(5))+" : "+(+amp.toFixed(5));
+  if(p.phase||p.adsr) line+=" : "+ph;
+  if(p.adsr){ const e=partADSR(p); line+=" : "+(+e.a.toFixed(4))+" : "+(+e.d.toFixed(4))+" : "+(+e.s.toFixed(4))+" : "+(+e.r.toFixed(4)); }
+  return line;
+}
 function init(){
-  const box=el("presets");
-  Object.keys(PRESETS).forEach(n=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=n;
-    b.onclick=()=>{ el("grammar").value=PRESETS[n]; applyGrammar(); }; box.appendChild(b); });
-  el("grammar").value=PRESETS["saw ∞"]; applyGrammar();
+  const presetSelect=el("presetSelect");
+  PRESET_GROUPS.forEach(([label,presets])=>{
+    const group=document.createElement("optgroup"); group.label=label;
+    Object.keys(presets).forEach(n=>{ const option=document.createElement("option"); option.value=n; option.textContent=n; group.appendChild(option); });
+    presetSelect.appendChild(group);
+  });
+  const loadPreset=n=>{ el("grammar").value=PRESETS[n]; applyGrammar(); };
+  presetSelect.addEventListener("change",()=>loadPreset(presetSelect.value));
+  presetSelect.value="saw ∞"; loadPreset(presetSelect.value);
   el("startBtn").onclick=()=>initAudio();
   el("applyBtn").onclick=applyGrammar; el("ceil").addEventListener("change",applyGrammar);
   el("xref").addEventListener("change",applyGrammar);
@@ -899,11 +1139,11 @@ function init(){
     if(t.dataset.p==="env") drawEnvPlot(); if(t.dataset.p==="tab") renderTabPane(); });
   el("tabCopy").onclick=()=>{ navigator.clipboard&&navigator.clipboard.writeText(el("tabJson").textContent); el("tabCopy").textContent="⧉ copied"; setTimeout(()=>el("tabCopy").textContent="⧉ copy",1200); };
   el("bakeBtn").onclick=()=>{ if(!PARTIALS.length)return;
-    el("grammar").value="# baked from spectrum\n"+PARTIALS.map(p=>(+p.ratio.toFixed(5))+" : "+(+p.amp.toFixed(5))+(p.phase?" : "+(+(p.phase*180/Math.PI).toFixed(1)):"")).join("\n");
+    el("grammar").value="# baked from spectrum\n"+PARTIALS.map(p=>partialLine(p)).join("\n");
     applyGrammar(); };
   el("normBtn").onclick=()=>{ try{ const {parts}=buildPartials(el("grammar").value,+el("ceil").value||32,getXref());
     const mx=Math.max(...parts.map(p=>Math.abs(p.amp)))||1;
-    el("grammar").value=parts.map(p=>(+p.ratio.toFixed(5))+" : "+(+(p.amp/mx).toFixed(4))+(p.phase?" : "+(+(p.phase*180/Math.PI).toFixed(1)):"")).join("\n");
+    el("grammar").value=parts.map(p=>partialLine(p,1/mx)).join("\n");
     applyGrammar(); }catch(e){ el("err").textContent="✕ "+e.message; el("err").className="err"; } };
   el("grammar").addEventListener("keydown",e=>{ if(e.ctrlKey&&e.key==="Enter"){e.preventDefault();applyGrammar();} });
   slider("master","masterV",v=>v.toFixed(2),v=>{if(master)master.gain.value=v;});
