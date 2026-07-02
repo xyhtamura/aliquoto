@@ -194,7 +194,7 @@ input[type=range]:focus::-moz-range-track{ border-color:var(--magenta); box-shad
 .screen .cap .hint{ color:var(--lcd-dim) }
 #specCard{ flex:1.15; min-height:190px } #waveCard{ flex:.9; min-height:140px }
 canvas{ display:block; width:100%; height:100% }
-#spec{ cursor:ns-resize }
+#spec{ cursor:crosshair }
 .readout{ display:flex; gap:8px; flex-wrap:wrap; font-family:var(--lcdf); font-size:17px; color:var(--dim); padding:0 3px; align-items:baseline }
 .readout span{ background:#c7d491; border:1px solid #6e7c54; padding:1px 7px; box-shadow:inset 0 1px 5px #6f7f4f55; }
 .readout b{ color:var(--ink) } .readout .warn{ color:var(--magenta) }
@@ -252,7 +252,29 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
   background:linear-gradient(180deg,#25372b,#111d16); border:1px solid #07110b; border-radius:3px; padding:3px 9px; cursor:pointer;
   box-shadow:inset 0 1px 0 #546849, 0 1px 0 #edf5bd; }
 .surfchips .sc.on{ background:linear-gradient(180deg,#a7bb6b,#64733e); color:#0a170f; border-color:#263425 }
+.btn:disabled{ opacity:.4; cursor:default; pointer-events:none }
+input:disabled{ opacity:.45; cursor:not-allowed }
 #surfaceCanvas{ display:none; width:100%; height:150px; touch-action:none; cursor:crosshair; border-radius:3px }
+#ovrDock:empty{ display:none }
+#ovrDock{ display:flex; flex-direction:column; gap:8px }
+#ovrDock #ovrCard{ padding:10px 12px; overflow:visible }
+#ovrDock #ovrCard .cap{ position:static; margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap }
+#ovrDock #ovrCard input[type=text]{ width:100% }
+#ovrDock #adsrMini{ width:150px; height:56px; max-width:100%; border:1px solid var(--edge2); border-radius:3px }
+#interfacePanel{ display:flex; flex-direction:column; gap:10px; min-height:0 }
+#interfaceScreen{ padding:8px 10px; min-height:154px; display:flex; flex-direction:column; justify-content:center }
+#interfacePanel.iface-half #interfaceScreen{ height:50dvh; min-height:260px }
+#interfacePanel.iface-full{ position:fixed; inset:0; z-index:180; padding:14px 15px;
+  background:linear-gradient(180deg,#d9e3a8 0%,#bac77d 43%,#a1b263 100%);
+  box-shadow:inset 0 0 0 2px var(--edge2); }
+#interfacePanel.iface-full #interfaceScreen{ flex:1 1 auto; min-height:0 }
+#interfacePanel.iface-half #kbWrap,
+#interfacePanel.iface-full #kbWrap{ height:100%; min-height:0 }
+#interfacePanel.iface-half #keyboard,
+#interfacePanel.iface-full #keyboard{ height:100%; min-height:0 }
+#interfacePanel.iface-half #surfaceCanvas,
+#interfacePanel.iface-full #surfaceCanvas{ height:100%; min-height:0 }
+body.iface-full{ overflow:hidden }
 ::-webkit-scrollbar{ width:11px;height:11px } ::-webkit-scrollbar-thumb{ background:var(--edge2); border-radius:3px; border:2px solid var(--panel2) } ::-webkit-scrollbar-track{ background:#b6c477 }
 </style>
 </head>
@@ -311,6 +333,7 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
     <div class="sliderrow"><span>decay</span><input type="range" id="dec" min=".001" max="3" step=".001" value=".2"><output id="decV"></output></div>
     <div class="sliderrow"><span>sustain</span><input type="range" id="sus" min="0" max="1" step=".001" value=".7"><output id="susV"></output></div>
     <div class="sliderrow"><span>release</span><input type="range" id="rel" min=".001" max="4" step=".001" value=".4"><output id="relV"></output></div>
+    <div id="ovrDock"></div>
 
     <div class="divider"></div>
     <div class="seclabel">per-partial drift</div>
@@ -320,19 +343,56 @@ table.tbl td.sub{ color:var(--amber) } table.tbl td.inh{ color:var(--violet) }
   </div></aside>
 
   <main class="main">
-    <div class="screen" id="specCard"><div class="cap">SPECTRUM <span class="hint">· log₂ ratio axis · drag partial = amp</span></div><canvas id="spec"></canvas></div>
+    <div class="row" id="specToolbar" style="gap:10px">
+      <span id="specTools" class="surfchips"></span>
+      <span id="selModeChips" class="surfchips"></span>
+      <button class="btn" id="selAllBtn" style="padding:3px 9px;font-size:11px">all</button>
+      <button class="btn" id="selNoneBtn" style="padding:3px 9px;font-size:11px">none</button>
+      <button class="btn" id="restoreBtn" style="padding:3px 9px;font-size:11px" hidden title="bring back partials hidden by Delete">restore removed</button>
+      <span id="selCount" class="help" style="margin:0"></span>
+      <span class="grow"></span>
+      <button class="btn" id="undoBtn" title="Ctrl+Z" style="padding:3px 9px;font-size:11px">↶ undo</button>
+      <button class="btn" id="redoBtn" title="Ctrl+Shift+Z" style="padding:3px 9px;font-size:11px">↷ redo</button>
+    </div>
+    <div class="screen" id="specCard"><div class="cap">SPECTRUM <span class="hint" id="specHint">· log₂ ratio axis · select or move partials</span></div><canvas id="spec"></canvas></div>
+    <div class="screen" id="ovrCard" style="display:none;padding:10px 12px">
+      <div class="cap" style="position:static;margin-bottom:6px">OVERRIDE <span class="hint" id="ovrCount"></span>
+        <span class="chip" id="ovrClearAll" style="margin-left:8px;padding:2px 8px;font-size:10px">clear all for selection</span></div>
+      <div class="row" style="gap:14px;align-items:flex-start">
+        <div class="row" style="gap:8px">
+          <label class="field">ratio <input type="number" id="ovrRatio" step="0.01" style="width:82px"></label>
+          <label class="field">a_max <input type="number" id="ovrAmp" step="0.01" style="width:74px"></label>
+          <label class="field">phase° <input type="number" id="ovrPhase" step="1" style="width:66px"></label>
+        </div>
+        <div class="row" style="gap:6px">
+          <label class="field">A <input type="number" id="ovrA" step="0.01" min="0" style="width:58px"></label>
+          <label class="field">D <input type="number" id="ovrD" step="0.01" min="0" style="width:58px"></label>
+          <label class="field">S <input type="number" id="ovrS" step="0.01" min="0" max="1" style="width:58px"></label>
+          <label class="field">R <input type="number" id="ovrR" step="0.01" min="0" style="width:58px"></label>
+          <canvas id="adsrMini" width="150" height="56" style="width:150px;height:56px;border:1px solid var(--edge2);border-radius:3px"></canvas>
+        </div>
+      </div>
+      <div class="row" style="gap:14px;margin-top:6px">
+        <label class="field" style="flex:1;min-width:160px">r(t) override <input type="text" id="ovrRExpr" placeholder="e.g. t+1"></label>
+        <label class="field" style="flex:1;min-width:160px">gain(t) override <input type="text" id="ovrGainExpr" placeholder="e.g. adsr(t,.01,.2,.7,.4)"></label>
+      </div>
+      <div class="help" id="ovrErr" style="color:var(--magenta);min-height:14px"></div>
+      <div class="help">Blank a field + commit (Enter/blur) to clear that one override and fall back to the global formula. Multiple selected + mixed values show blank; editing writes to all selected.</div>
+    </div>
     <div class="screen" id="waveCard"><div class="cap">WAVE <span class="hint">· Σ aₙ sin(2π rₙ t + φₙ) · live=magenta</span></div><canvas id="wave"></canvas></div>
     <div class="readout" id="readout"></div>
-    <div class="seclabel">interface <span id="surfChips" class="surfchips"></span></div>
-    <div class="row" id="surfCtl" style="gap:10px">
-      <label class="field">EDO <input type="number" id="edo" value="12" min="1" max="96" style="width:56px"></label>
-      <span id="surfCtlExtra" class="row" style="gap:10px"></span>
-      <span class="help" id="surfHint" style="flex:1;margin:0;min-width:120px"></span>
-    </div>
-    <div class="screen" style="padding:8px 10px">
-      <div id="kbWrap"><div id="keyboard"></div></div>
-      <canvas id="surfaceCanvas"></canvas>
-    </div>
+    <section id="interfacePanel">
+      <div class="seclabel">interface <span id="surfChips" class="surfchips"></span> <span id="ifaceSizeChips" class="surfchips"></span></div>
+      <div class="row" id="surfCtl" style="gap:10px">
+        <label class="field">EDO <input type="number" id="edo" value="12" min="1" max="96" style="width:56px"></label>
+        <span id="surfCtlExtra" class="row" style="gap:10px"></span>
+        <span class="help" id="surfHint" style="flex:1;margin:0;min-width:120px"></span>
+      </div>
+      <div class="screen" id="interfaceScreen">
+        <div id="kbWrap"><div id="keyboard"></div></div>
+        <canvas id="surfaceCanvas"></canvas>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -444,7 +504,7 @@ function buildPartials(text,ceil,f0ref){
         if(fw && !fw(...c,r,hz,f0ref)) continue;
         const a=fa(...c,r,hz,f0ref), p=fp(...c,r,hz,f0ref);
         if(!isFinite(r)||!isFinite(a)||!isFinite(p)||a===0) continue;
-        const pt={ratio:r,amp:a,phase:p*Math.PI/180};
+        const pt={ratio:r,amp:a,phase:p*Math.PI/180,pid:"s"+li+":"+c.join(",")};
         if(rHasT){ pt.dyn={r:{expr:rE,vars:[...vars,"t"],vals:[...c]}}; meta.dynamicRatio=true; }
         if(fads) pt.adsr=evalADSR(fads,[...c,r,hz,f0ref]);
         parts.push(pt);
@@ -478,7 +538,7 @@ function buildPartials(text,ceil,f0ref){
       if(p.length>3 && p.length<7) throw new Error("line "+(li+1)+": literal ADSR needs attack:decay:sustain:release");
       if(!isFinite(r)) throw new Error("line "+(li+1)+": bad ratio");
       if(a!==0){
-        const pt={ratio:r,amp:a,phase:(ph||0)*Math.PI/180};
+        const pt={ratio:r,amp:a,phase:(ph||0)*Math.PI/180,pid:"l"+li};
         if(rHasT){ pt.dyn={r:{expr:p[0],vars:["t"],vals:[]}}; meta.dynamicRatio=true; }
         if(p.length>=7) pt.adsr=ADSR(K(p[3]),K(p[4]),K(p[5]),K(p[6]));
         parts.push(pt); meta.literals++;
@@ -804,7 +864,7 @@ function loadTabota(text,name){
     const doc=JSON.parse(text); const out=window.TabotaResolve.resolve(doc); SCORE=resolvedToNotes(out);
     // adopt the instrument's own paddy if this doc carries one
     const pl=doc.payload||{}; let adopted="";
-    if(pl.spectrum){ el("grammar").value=pl.spectrum; if(pl.xPitchHz) el("xref").value=pl.xPitchHz; applyGrammar(); adopted=" · spectrum adopted"; }
+    if(pl.spectrum){ pushHist(); el("grammar").value=pl.spectrum; if(pl.xPitchHz) el("xref").value=pl.xPitchHz; applyGrammar(); adopted=" · spectrum adopted"; }
     const errs=SCORE.diagnostics.filter(d=>d.level==="error").length;
     el("err").className="err ok";
     el("err").textContent=`⤒ ${name}: ${SCORE.notes.length} notes · ${SCORE.total.toFixed(1)}s`+(SCORE.skipped?` · ${SCORE.skipped} skipped`:"")+(errs?` · ${errs} err`:"")+adopted;
@@ -827,8 +887,14 @@ function applyGrammar(){
   try{ const ceil=Math.max(1,Math.min(256,+el("ceil").value||32));
     const {parts,meta}=buildPartials(el("grammar").value,ceil,getXref());
     PARTIALS=parts; META=meta; edited=false;
+    if(typeof SEL!=="undefined"){ const baseLive=new Set(PARTIALS.map(p=>p.pid));
+      OVR.forEach((o,pid)=>{ if(!baseLive.has(pid)&&!o.add) OVR.delete(pid); }); }
+    if(typeof applyOverrides==="function") applyOverrides();
+    if(typeof SEL!=="undefined"){ const live=new Set(PARTIALS.map(p=>p.pid)); SEL.forEach(pid=>{ if(!live.has(pid)) SEL.delete(pid); }); }
     el("err").textContent="✓ "+PARTIALS.length+" partial"+(PARTIALS.length!==1?"s":"");
     el("err").className="err ok"; syncFormulaControls(); drawSpec(); drawWaveStatic(); readout();
+    if(typeof refreshSelUI==="function") refreshSelUI();
+    if(typeof refreshOverridePanel==="function") refreshOverridePanel();
     if(el("modal").classList.contains("open")) renderModal();
   }catch(e){ el("err").textContent="✕ "+e.message; el("err").className="err"; }
 }
@@ -837,8 +903,19 @@ function syncFormulaControls(){
   lockSliders(["atk","dec","sus","rel"],formulaOwnsEnv());
   lockSliders(["driftC","driftR"],formulaOwnsDrift());
 }
+function ovrCounts(){ const c={added:0,removed:0,modified:0,total:0};
+  OVR.forEach(o=>{ c.total++; if(o.add)c.added++; else if(o.removed)c.removed++; else c.modified++; });
+  return c; }
+function countLabel(n,word){ return n+" "+word; } // words are past participles — no plural s
+function ovrStatusSpans(c){
+  return (c.added?`<span class="warn">${countLabel(c.added,"added")}</span>`:"")+
+    (c.modified?`<span class="warn">◆ ${countLabel(c.modified,"modified")}</span>`:"")+
+    (c.removed?`<span class="warn">${countLabel(c.removed,"removed")}</span>`:"");
+}
 function readout(){
-  if(!PARTIALS.length){ el("readout").innerHTML=""; return; }
+  const oc=ovrCounts();
+  const rb=el("restoreBtn"); if(rb) rb.hidden=!oc.removed;
+  if(!PARTIALS.length){ el("readout").innerHTML=`<span>N=<b>0</b></span>`+ovrStatusSpans(oc); return; }
   const rs=PARTIALS.map(p=>p.ratio); const sub=rs.filter(r=>r<1).length;
   const inh=PARTIALS.some(p=>Math.abs(p.ratio-Math.round(p.ratio))>1e-6);
   const motion=[formulaOwnsDrift()?"r(t)":null,formulaOwnsEnv()?"gain(t)":null].filter(Boolean).join(" · ");
@@ -848,8 +925,10 @@ function readout(){
     `<span>X <b>${(+getXref().toFixed(2))}</b>Hz</span>`+
     `<span>r <b>${(+Math.min(...rs).toFixed(3))}</b>..<b>${(+Math.max(...rs).toFixed(3))}</b></span>`+
     `<span>${sub?"<b>"+sub+"</b> sub · ":""}${inh?"inharmonic":"harmonic"}${motion?" · "+motion:""}</span>`+
-    (edited?`<span class="warn">◆ edited</span>`:``)+
+    (OVR.size?`<span class="warn">◆ ${OVR.size} overridden</span>`:``)+
+    (edited&&!OVR.size?`<span class="warn">◆ edited</span>`:``)+
     `<span>${AC?(workletReady?"phase-exact":"osc"):"idle"}</span>`;
+  if(OVR.size) el("readout").innerHTML=el("readout").innerHTML.replace(/<span class="warn">[^<]*overridden<\/span>/,ovrStatusSpans(oc));
 }
 
 /* ================= VIZ ================= */
@@ -877,9 +956,19 @@ function drawSpec(){
   x.globalAlpha=1; x.strokeStyle=cv("--edge2"); x.beginPath();x.moveTo(PAD,y0+.5);x.lineTo(W-PAD,y0+.5);x.stroke();
   // partials, with bloom
   for(const p of PARTIALS){ const px=X(Math.log2(p.ratio)); const h=(Math.abs(p.amp)/AMAX)*(y0-top); const c2=pcolor(p);
+    const sel=SEL&&SEL.has(p.pid), mod=typeof OVR!=="undefined"&&OVR.has(p.pid);
+    if(sel){ x.shadowColor=cv("--lcd"); x.shadowBlur=0; x.strokeStyle=cv("--lcd"); x.lineWidth=1; x.globalAlpha=.8;
+      x.beginPath(); x.arc(px,y0-h,7,0,7); x.stroke(); x.globalAlpha=1; }
     x.shadowColor=c2; x.shadowBlur=12; x.strokeStyle=c2; x.lineWidth=2.3;
     x.beginPath();x.moveTo(px,y0);x.lineTo(px,y0-h);x.stroke();
-    x.fillStyle=c2; x.beginPath();x.arc(px,y0-h,3,0,7);x.fill(); x.shadowBlur=0; }
+    x.fillStyle=c2; x.beginPath();x.arc(px,y0-h,sel?4:3,0,7);x.fill(); x.shadowBlur=0;
+    if(mod){ x.strokeStyle=cv("--magenta"); x.lineWidth=1.3; x.globalAlpha=.9;
+      x.strokeRect(px-4,y0-h-11,8,8); x.globalAlpha=1; } }
+  // marquee
+  if(typeof marquee==="object" && marquee){ const xa=Math.min(marquee.x0,marquee.x1),xb=Math.max(marquee.x0,marquee.x1);
+    const ya=Math.min(marquee.y0,marquee.y1),yb=Math.max(marquee.y0,marquee.y1);
+    x.fillStyle=cv("--lcd"); x.globalAlpha=.12; x.fillRect(xa,ya,xb-xa,yb-ya);
+    x.globalAlpha=.7; x.strokeStyle=cv("--lcd"); x.lineWidth=1; x.setLineDash([4,3]); x.strokeRect(xa,ya,xb-xa,yb-ya); x.setLineDash([]); x.globalAlpha=1; }
 }
 function drawWaveStatic(){ const c=el("wave"); const {x,W,H}=fit(c); paintWave(x,W,H); }
 function paintWave(x,W,H){ x.clearRect(0,0,W,H);
@@ -900,20 +989,230 @@ function scopeLoop(){ const c=el("wave"); const buf=new Uint8Array(analyser.fftS
   tick();
 }
 
-/* ---- draggable partials ---- */
-let dragI=-1;
+/* ---- SELECTION SHELL (binlod-ported) — select never moves; move selects then drags ---- */
+let TOOL="select", SELMODE="replace", SEL=new Set(); // SEL holds partial pid strings — survives re-eval where the pid still exists
+let dragI=-1, marquee=null, marqDrag=null, moveState=null;
 function specPos(e){ const r=el("spec").getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+function pidAt(i){ return PARTIALS[i]&&PARTIALS[i].pid; }
+function hitPartial(x,y){ if(!SM||!PARTIALS.length)return -1; let best=-1,bd=1e9;
+  for(let i=0;i<PARTIALS.length;i++){ const px=SM.X(Math.log2(PARTIALS[i].ratio)); const py=SM.y0-(Math.abs(PARTIALS[i].amp)/SM.AMAX)*(SM.y0-SM.top);
+    const d=(px-x)**2+(py-y)**2; if(d<bd){bd=d;best=i;} }
+  return bd<20*20?best:-1; }
+function refreshSelUI(){ el("selCount").textContent = SEL.size?SEL.size+" selected":""; drawSpec(); if(typeof refreshOverridePanel==="function") refreshOverridePanel(); }
+function setTool(t){ TOOL=t; marquee=null; marqDrag=null;
+  document.querySelectorAll("#specTools .sc").forEach(c=>c.classList.toggle("on",c.dataset.t===t));
+  el("spec").style.cursor=t==="move"?"grab":(t==="add"?"copy":"crosshair");
+  el("specHint").textContent = t==="select" ? "· log₂ ratio axis · click select · drag empty = marquee"
+    : t==="move" ? "· log₂ ratio axis · drag partial = select + move · drag empty = marquee"
+    : "· click spectrum = add partial · x=ratio y=a_max"; }
+function buildSpecToolbar(){
+  const tb=el("specTools"); tb.innerHTML="";
+  [["select","select"],["move","move"],["add","add"]].forEach(([id,label])=>{ const b=document.createElement("span"); b.className="sc"+(id===TOOL?" on":"");
+    b.dataset.t=id; b.textContent=label; b.onclick=()=>setTool(id); tb.appendChild(b); });
+  const mb=el("selModeChips"); mb.innerHTML="";
+  [["replace","replace"],["include","+incl"],["exclude","−excl"]].forEach(([id,label])=>{ const b=document.createElement("span"); b.className="sc"+(id===SELMODE?" on":"");
+    b.dataset.m=id; b.textContent=label; b.onclick=()=>{ SELMODE=id; document.querySelectorAll("#selModeChips .sc").forEach(x=>x.classList.toggle("on",x.dataset.m===id)); }; mb.appendChild(b); });
+  el("selAllBtn").onclick=()=>{ SEL=new Set(PARTIALS.map(p=>p.pid)); refreshSelUI(); };
+  el("selNoneBtn").onclick=()=>{ SEL.clear(); refreshSelUI(); };
+  el("restoreBtn").onclick=()=>restoreRemovedPartials();
+}
+function selectionMode(e){ return e.shiftKey?"include":e.altKey?"exclude":SELMODE; }
+function applyHitSelection(i,mode,keepGroup){
+  const pid=pidAt(i); if(!pid)return [];
+  if(mode==="exclude"){ SEL.delete(pid); refreshSelUI(); return []; }
+  if(mode==="include") SEL.add(pid);
+  else if(!(keepGroup&&SEL.has(pid)&&SEL.size>1)) SEL=new Set([pid]);
+  refreshSelUI(); return selectedPartials();
+}
+function startMarquee(x,y,mode){
+  const base=new Set(SEL); if(mode==="replace") SEL.clear();
+  marqDrag={x0:x,y0:y,mode,base}; marquee={x0:x,y0:y,x1:x,y1:y}; refreshSelUI();
+}
+function startMoveDrag(i,x,y,mode){
+  const grp=applyHitSelection(i,mode,true); if(!grp.length)return;
+  const dp=PARTIALS[i]; dragI=i; el("spec").style.cursor="grabbing";
+  moveState={ startX:x, startY:y, axis:null, dragA0:Math.abs(dp.amp)||1e-6,
+    grp:grp.map(p=>({p, r0:p.ratio, a0:p.amp})) };
+}
+function specValuesAt(x,y){ const sm=SM||{lo:0,hi:5,PAD:20,W:el("spec").getBoundingClientRect().width,y0:el("spec").getBoundingClientRect().height-24,top:30,AMAX:1};
+  const l2=sm.lo+((x-sm.PAD)/(sm.W-2*sm.PAD))*(sm.hi-sm.lo);
+  const ratio=Math.max(1e-4,Math.pow(2,l2));
+  const amp=Math.max(0.001,Math.min(1.05,(sm.y0-y)/(sm.y0-sm.top))*(sm.AMAX||1));
+  return {ratio,amp}; }
+function addPartialAt(x,y){ const v=specValuesAt(x,y), pid="a"+(++ADD_SEQ);
+  OVR.set(pid,{add:true,ratio:v.ratio,amp:v.amp,phase:0});
+  SEL=new Set([pid]); applyGrammar(); }
+function removeSelectedPartials(){
+  const sel=selectedPartials(); if(!sel.length)return;
+  sel.forEach(p=>{ const o=OVR.get(p.pid);
+    if(o&&o.add) OVR.delete(p.pid);
+    else OVR.set(p.pid,Object.assign({},o||{},{removed:true})); });
+  SEL.clear(); applyGrammar();
+}
+function restoreRemovedPartials(){
+  OVR.forEach((o,pid)=>{ if(!o.removed)return; delete o.removed;
+    if(!Object.keys(o).length) OVR.delete(pid); });
+  applyGrammar();
+}
 el("spec").addEventListener("pointerdown",e=>{
-  if(!SM||!PARTIALS.length)return; const {x,y}=specPos(e); let best=-1,bd=1e9;
-  for(let i=0;i<PARTIALS.length;i++){ const px=SM.X(Math.log2(PARTIALS[i].ratio)); const d=Math.abs(px-x); if(d<bd){bd=d;best=i;} }
-  if(bd<16){ dragI=best; el("spec").setPointerCapture(e.pointerId); setAmpFromY(y); }
+  if(!SM&&!PARTIALS.length&&TOOL!=="add")return; const {x,y}=specPos(e);
+  try{el("spec").setPointerCapture(e.pointerId);}catch(_){}
+  if(TOOL==="add"){ addPartialAt(x,y); return; }
+  if(!SM||!PARTIALS.length)return;
+  const mode=selectionMode(e), i=hitPartial(x,y);
+  if(i>=0){ if(TOOL==="move") startMoveDrag(i,x,y,mode); else applyHitSelection(i,mode,false); return; }
+  startMarquee(x,y,mode);
 });
-el("spec").addEventListener("pointermove",e=>{ if(dragI<0)return; setAmpFromY(specPos(e).y); });
-el("spec").addEventListener("pointerup",()=>{ dragI=-1; });
-el("spec").addEventListener("pointerleave",()=>{ dragI=-1; });
-function setAmpFromY(y){ if(!SM)return; const t=(SM.y0-y)/(SM.y0-SM.top);
-  const a=Math.max(0,Math.min(1.05,t))*SM.AMAX; const sgn=PARTIALS[dragI].amp<0?-1:1;
-  PARTIALS[dragI].amp=a*sgn; edited=true; drawSpec(); if(!AC)drawWaveStatic(); readout(); }
+el("spec").addEventListener("pointermove",e=>{
+  if(dragI>=0){ moveDrag(specPos(e)); return; }
+  if(!marqDrag)return; const {x,y}=specPos(e); marquee.x1=x; marquee.y1=y;
+  const xa=Math.min(marqDrag.x0,x), xb=Math.max(marqDrag.x0,x), ya=Math.min(marqDrag.y0,y), yb=Math.max(marqDrag.y0,y);
+  let inside; const mode=marqDrag.mode;
+  if(mode==="exclude"){ inside=new Set(marqDrag.base);
+    for(const p of PARTIALS){ const px=SM.X(Math.log2(p.ratio)),py=SM.y0-(Math.abs(p.amp)/SM.AMAX)*(SM.y0-SM.top);
+      if(px>=xa&&px<=xb&&py>=ya&&py<=yb) inside.delete(p.pid); } }
+  else { inside=new Set(mode==="include"?marqDrag.base:[]);
+    for(const p of PARTIALS){ const px=SM.X(Math.log2(p.ratio)),py=SM.y0-(Math.abs(p.amp)/SM.AMAX)*(SM.y0-SM.top);
+      if(px>=xa&&px<=xb&&py>=ya&&py<=yb) inside.add(p.pid); } }
+  SEL=inside; refreshSelUI();
+});
+function endSpecDrag(){ if(dragI>=0){ dragI=-1; moveState=null; el("spec").style.cursor=TOOL==="move"?"grab":"crosshair"; if(typeof refreshOverridePanel==="function")refreshOverridePanel(); readout(); } if(marqDrag){ marqDrag=null; marquee=null; drawSpec(); } }
+el("spec").addEventListener("pointerup",endSpecDrag);
+el("spec").addEventListener("pointerleave",endSpecDrag);
+el("spec").addEventListener("pointercancel",endSpecDrag);
+/* group-aware move: y = a_max (scale), x = ratio (transpose). Axis-locked per gesture. Writes OVR → bakeable. */
+function ovrSet(pid,field,val){ let o=OVR.get(pid); if(!o){o={};OVR.set(pid,o);} o[field]=val; }
+function moveDrag(pos){ if(!SM||!moveState)return; const ms=moveState;
+  const dx=pos.x-ms.startX, dy=pos.y-ms.startY;
+  if(ms.axis==null){ if(Math.abs(dx)<4&&Math.abs(dy)<4)return; ms.axis=Math.abs(dx)>Math.abs(dy)?"x":"y"; }
+  if(ms.axis==="y"){ const tA=Math.max(0,Math.min(1.05,(SM.y0-pos.y)/(SM.y0-SM.top)))*SM.AMAX; const scale=tA/ms.dragA0;
+    for(const it of ms.grp){ const na=it.a0*scale; it.p.amp=na; ovrSet(it.p.pid,"amp",na); } }
+  else { const dLog2=dx*(SM.hi-SM.lo)/(SM.W-2*SM.PAD), f=Math.pow(2,dLog2);
+    for(const it of ms.grp){ const nr=Math.max(1e-4,it.r0*f); it.p.ratio=nr; ovrSet(it.p.pid,"ratio",nr); } }
+  edited=true; drawSpec(); if(!AC)drawWaveStatic(); }
+
+/* ---- UNDO/REDO — scoped to the grammar text (bake/normalize/apply/preset/import) ---- */
+let HIST=[], HFUT=[]; const HIST_MAX=100;
+function pushHist(){ HIST.push(el("grammar").value); if(HIST.length>HIST_MAX)HIST.shift(); HFUT=[]; refreshHistUI(); }
+function doUndo(){ if(!HIST.length)return; HFUT.push(el("grammar").value); el("grammar").value=HIST.pop(); applyGrammar(); refreshHistUI(); }
+function doRedo(){ if(!HFUT.length)return; HIST.push(el("grammar").value); el("grammar").value=HFUT.pop(); applyGrammar(); refreshHistUI(); }
+function refreshHistUI(){ el("undoBtn").disabled=!HIST.length; el("redoBtn").disabled=!HFUT.length; }
+
+/* ---- OVERRIDE PANEL — per-partial ratio/a_max/phase/ADSR/r(t)/gain(t), bakeable ---- */
+let ADD_SEQ=0;
+let OVR=new Map(); // pid -> {add?,removed?,ratio?,amp?,phase?,adsr?:{a,d,s,r},rExpr?,gainExpr?}
+const ADSRFIELDS=["A","D","S","R"];
+function selectedPartials(){ return PARTIALS.filter(p=>SEL.has(p.pid)); }
+function dockOverridePanel(){ const dock=el("ovrDock"), card=el("ovrCard"); if(dock&&card&&!dock.contains(card)) dock.appendChild(card); }
+function partialFromOverride(pid,o){
+  const p={pid,ratio:o.ratio??1,amp:o.amp??1,phase:(o.phase||0)*Math.PI/180,added:!!o.add};
+  if(o.adsr) p.adsr=ADSR(o.adsr.a,o.adsr.d,o.adsr.s,o.adsr.r);
+  if(o.rExpr){ try{ const fn=compileExpr(o.rExpr,["t"]); const v0=fn(0);
+    if(isFinite(v0)&&v0>0){ p.ratio=v0; p.dyn={r:{expr:o.rExpr,vars:["t"],vals:[]}}; } }catch(e){} }
+  if(o.gainExpr){ try{ compileExpr(o.gainExpr,["t","r","hz","f0","a"]); p.gains=[o.gainExpr]; }catch(e){} }
+  return p;
+}
+function applyOverrides(){
+  const next=[];
+  for(const p of PARTIALS){ const o=OVR.get(p.pid); if(o&&o.removed)continue; if(!o){ next.push(p); continue; }
+    if(o.ratio!=null) p.ratio=o.ratio;
+    if(o.amp!=null) p.amp=o.amp;
+    if(o.phase!=null) p.phase=o.phase*Math.PI/180;
+    if(o.adsr) p.adsr=ADSR(o.adsr.a,o.adsr.d,o.adsr.s,o.adsr.r);
+    if(o.rExpr){ try{ const fn=compileExpr(o.rExpr,["t"]); const v0=fn(0);
+      if(isFinite(v0)&&v0>0){ p.ratio=v0; p.dyn={r:{expr:o.rExpr,vars:["t"],vals:[]}}; } }catch(e){} }
+    if(o.gainExpr){ try{ compileExpr(o.gainExpr,["t","r","hz","f0","a"]); p.gains=[o.gainExpr]; }catch(e){} }
+    next.push(p);
+  }
+  OVR.forEach((o,pid)=>{ if(o.add) next.push(partialFromOverride(pid,o)); });
+  PARTIALS=next;
+  if(OVR.size) edited=true;
+}
+function setOverrideField(field,val){
+  const sel=selectedPartials(); if(!sel.length)return;
+  for(const p of sel){ let o=OVR.get(p.pid); if(!o){o={}; OVR.set(p.pid,o);}
+    if(ADSRFIELDS.includes(field)){ const cur=partADSR(p); o.adsr={a:cur.a,d:cur.d,s:cur.s,r:cur.r}; o.adsr[field.toLowerCase()]=val; }
+    else o[field]=val; }
+  el("ovrErr").textContent=""; applyGrammar();
+}
+function clearOverrideField(field){
+  const sel=selectedPartials(); if(!sel.length)return;
+  for(const p of sel){ const o=OVR.get(p.pid); if(!o)continue;
+    if(o.add&&["ratio","amp","phase"].includes(field)){ el("ovrErr").textContent="added partial needs ratio / a_max / phase"; return; }
+    if(ADSRFIELDS.includes(field)){ if(o.adsr){ delete o.adsr; } } else delete o[field];
+    if(!Object.keys(o).length) OVR.delete(p.pid); }
+  el("ovrErr").textContent=""; applyGrammar();
+}
+function commitField(field,raw){
+  if(raw==null||raw.trim()===""){ clearOverrideField(field); return; }
+  if(field==="rExpr"||field==="gainExpr"){
+    try{ compileExpr(raw,field==="rExpr"?["t"]:["t","r","hz","f0","a"]); }catch(e){ el("ovrErr").textContent="✕ "+e.message; return; }
+    setOverrideField(field,raw); return; }
+  const v=+raw; if(!isFinite(v)){ el("ovrErr").textContent="✕ "+field+": not a number"; return; }
+  setOverrideField(field,v);
+}
+function commonOrBlank(values){ const uniq=[...new Set(values.map(v=>+(+v).toFixed(6)))]; return uniq.length===1?uniq[0]:null; }
+function setNum(id,v){ const inp=el(id); inp.value = v==null?"":v; inp.placeholder = v==null?"(mixed)":""; }
+function drawAdsrMini(ad){ const c=el("adsrMini"); if(!c)return; const {x,W,H}=fit(c); x.clearRect(0,0,W,H);
+  const hold=0.35, total=(ad.a+ad.d+hold+ad.r)||1;
+  const X=t=>6+(t/total)*(W-12), Y=v=>H-8-v*(H-16);
+  x.strokeStyle=cv("--edge"); x.globalAlpha=.5; x.beginPath();x.moveTo(6,H-8);x.lineTo(W-6,H-8);x.stroke(); x.globalAlpha=1;
+  x.shadowColor=cv("--lime"); x.shadowBlur=6; x.strokeStyle=cv("--lime"); x.lineWidth=2; x.beginPath();
+  x.moveTo(X(0),Y(0)); x.lineTo(X(ad.a),Y(1)); x.lineTo(X(ad.a+ad.d),Y(ad.s)); x.lineTo(X(ad.a+ad.d+hold),Y(ad.s)); x.lineTo(X(total),Y(0));
+  x.stroke(); x.shadowBlur=0; }
+function refreshOverridePanel(){
+  const sel=selectedPartials(), card=el("ovrCard"); if(!sel.length){ card.style.display="none"; return; }
+  card.style.display="";
+  const add=sel.filter(p=>OVR.get(p.pid)?.add).length, mod=sel.filter(p=>OVR.has(p.pid)&&!OVR.get(p.pid).add).length, grp=sel.length>1;
+  el("ovrCount").textContent=sel.length+" selected"+(add?" · "+countLabel(add,"added"):"")+(mod?" · "+countLabel(mod,"modified"):"")+(grp?" · drag spectrum: y=a_max x=ratio":"");
+  setNum("ovrRatio",commonOrBlank(sel.map(p=>p.ratio)));
+  setNum("ovrAmp",commonOrBlank(sel.map(p=>p.amp)));
+  el("ovrRatio").disabled=grp; el("ovrAmp").disabled=grp;   // group: absolute number entry ambiguous → drag instead
+  el("ovrRatio").title=el("ovrAmp").title=grp?"multiple selected — drag in the spectrum to move the group":"";
+  setNum("ovrPhase",commonOrBlank(sel.map(p=>+(p.phase*180/Math.PI).toFixed(3))));
+  const adsrs=sel.map(p=>partADSR(p));
+  setNum("ovrA",commonOrBlank(adsrs.map(a=>a.a))); setNum("ovrD",commonOrBlank(adsrs.map(a=>a.d)));
+  setNum("ovrS",commonOrBlank(adsrs.map(a=>a.s))); setNum("ovrR",commonOrBlank(adsrs.map(a=>a.r)));
+  const rExprs=[...new Set(sel.map(p=>(p.dyn&&p.dyn.r&&p.dyn.r.expr)||""))].filter(Boolean);
+  el("ovrRExpr").value = rExprs.length===1?rExprs[0]:""; el("ovrRExpr").placeholder = rExprs.length>1?"(mixed)":"e.g. t+1";
+  const gExprs=[...new Set(sel.map(p=>(p.gains&&p.gains[p.gains.length-1])||""))].filter(Boolean);
+  el("ovrGainExpr").value = gExprs.length===1?gExprs[0]:""; el("ovrGainExpr").placeholder = gExprs.length>1?"(mixed)":"e.g. adsr(t,.01,.2,.7,.4)";
+  drawAdsrMini(adsrs[0]||defaultADSR());
+}
+
+/* ---- BAKE v2 — selective: only overridden partials become literal, untouched sums stay ---- */
+function ovrIsStatic(o){ return o && !o.rExpr && !o.gainExpr; }
+function sumVars(line){ const body=line.replace(/^\s*sum\b/i,""); const decl=body.split(":")[0];
+  return [...decl.matchAll(/([A-Za-z_]\w*)\s*=/g)].map(m=>m[1]); }
+function bakeSelectiveGraphic(){
+  if(!OVR.size){ pushHist(); el("grammar").value="# baked from spectrum\n"+PARTIALS.map(p=>partialLine(p)).join("\n"); applyGrammar(); return; }
+  const lines=el("grammar").value.split("\n");
+  const litRewrite={}, litRemove={}, excl={}, appendLits=[], bakedPids=[]; let dynKept=0;
+  const byPid=new Map(PARTIALS.map(p=>[p.pid,p]));
+  function excludePid(pid,appendLine){
+    if(pid[0]==="l"){ const li=+pid.slice(1); if(appendLine) litRewrite[li]=appendLine; else litRemove[li]=true; bakedPids.push(pid); }
+    else if(pid[0]==="s"){ const rest=pid.slice(1), ci=rest.indexOf(":"), li=+rest.slice(0,ci), tuple=rest.slice(ci+1).split(",");
+      (excl[li]||(excl[li]=[])).push(tuple); if(appendLine) appendLits.push(appendLine); bakedPids.push(pid); }
+  }
+  OVR.forEach((o,pid)=>{
+    if(o.add){ if(!ovrIsStatic(o)){ dynKept++; return; }
+      appendLits.push(partialLine(byPid.get(pid)||partialFromOverride(pid,o))); bakedPids.push(pid); return; }
+    if(o.removed){ excludePid(pid,null); return; }
+    if(!ovrIsStatic(o)){ dynKept++; return; }
+    const p=byPid.get(pid); if(p) excludePid(pid,partialLine(p));
+  });
+  const out=lines.map((ln,i)=>{
+    if(litRemove[i]) return null;
+    if(litRewrite[i]!=null) return litRewrite[i];
+    if(excl[i]){ const code=ln.split("#")[0].replace(/\s+$/,""); const vars=sumVars(code);
+      const preds=excl[i].map(t=>"!("+vars.map((v,k)=>v+"=="+t[k]).join("&&")+")").join("&&");
+      return /\bwhere\b/i.test(code) ? code+"&&("+preds+")" : code+" where "+preds; }
+    return ln; }).filter(ln=>ln!=null);
+  const finalText=out.concat(appendLits.length?["# — baked overrides —"].concat(appendLits):[]).join("\n");
+  bakedPids.forEach(pid=>OVR.delete(pid));
+  pushHist(); el("grammar").value=finalText; applyGrammar();
+  if(dynKept) el("err").textContent+=" · "+dynKept+" dynamic override(s) kept live";
+}
 
 /* ================= NAKED MATH (modal) ================= */
 function tex(expr){ let s=(expr||"").trim(); if(!s)return "";
@@ -1001,7 +1300,11 @@ function bindKey(d,m){ d.addEventListener("pointerdown",e=>{e.preventDefault();i
   d.addEventListener("pointerup",()=>kbNoteOff(m)); d.addEventListener("pointerleave",e=>{if(e.buttons)kbNoteOff(m);}); }
 function paintKey(m,on){ const d=keyEls.get(m); if(d)d.classList.toggle("active",on); }
 let kbOct=0; const KMAP={a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12,o:13,l:14,p:15}; const down=new Set();
-addEventListener("keydown",e=>{ if(e.key==="Escape")closeModal();
+addEventListener("keydown",e=>{ if(e.key==="Escape"){ if(IFACE_SIZE==="full"){ setInterfaceSize("normal"); return; } closeModal(); }
+  if((e.ctrlKey||e.metaKey)&&e.target.tagName!=="TEXTAREA"&&e.target.tagName!=="INPUT"&&e.key.toLowerCase()==="z"){
+    e.preventDefault(); if(e.shiftKey) doRedo(); else doUndo(); return; }
+  if(e.target.tagName!=="TEXTAREA"&&e.target.tagName!=="INPUT"&&(e.key==="Delete"||e.key==="Backspace")&&SEL.size){
+    e.preventDefault(); removeSelectedPartials(); return; }
   if(e.repeat||e.target.tagName==="TEXTAREA"||e.target.tagName==="INPUT")return;
   const k=e.key.toLowerCase();
   if(SURFACE==="hex"){ if(k in HEXKMAP) initAudio().then(()=>hexKeyOn(k)); return; }
@@ -1027,6 +1330,21 @@ function hexKeyOff(k){ const v=hexKeys.get(k); if(!v)return; hexKeys.delete(k); 
 function buildSurfChips(){ const box=el("surfChips"); box.innerHTML="";
   ["piano","hex","ribbon"].forEach(s=>{ const b=document.createElement("span"); b.className="sc"+(s===SURFACE?" on":"");
     b.dataset.s=s; b.textContent=s; b.onclick=()=>setSurface(s); box.appendChild(b); }); }
+let IFACE_SIZE="normal";
+function buildInterfaceSizeChips(){ const box=el("ifaceSizeChips"); box.innerHTML="";
+  [["normal","fit"],["half","half"],["full","full"]].forEach(([mode,label])=>{
+    const b=document.createElement("span"); b.className="sc"+(mode===IFACE_SIZE?" on":"");
+    b.dataset.size=mode; b.textContent=label; b.onclick=()=>setInterfaceSize(mode); box.appendChild(b); }); }
+function setInterfaceSize(mode){ IFACE_SIZE=mode; applyInterfaceSize(); }
+function applyInterfaceSize(){ const panel=el("interfacePanel"); if(!panel)return;
+  panel.classList.toggle("iface-half",IFACE_SIZE==="half");
+  panel.classList.toggle("iface-full",IFACE_SIZE==="full");
+  document.body.classList.toggle("iface-full",IFACE_SIZE==="full");
+  document.querySelectorAll("#ifaceSizeChips .sc").forEach(c=>c.classList.toggle("on",c.dataset.size===IFACE_SIZE));
+  el("keyboard").style.height=IFACE_SIZE==="normal"?"132px":"100%";
+  el("surfaceCanvas").style.height=IFACE_SIZE==="normal"?(SURFACE==="hex"?"186px":"130px"):"100%";
+  requestAnimationFrame(drawSurface);
+}
 function releaseSurfaceNotes(){ surfPtr.forEach(v=>stopNote(v.id,true)); surfPtr.clear();
   hexKeys.forEach(v=>stopNote(v.id,true)); hexKeys.clear(); }
 function setSurface(s){ releaseSurfaceNotes(); SURFACE=s;
@@ -1034,8 +1352,7 @@ function setSurface(s){ releaseSurfaceNotes(); SURFACE=s;
   const piano=s==="piano", cvs=el("surfaceCanvas");
   el("kbWrap").style.display = piano?"":"none";
   cvs.style.display = piano?"none":"block";
-  cvs.style.height = s==="hex"?"186px":"130px";               // panel sizes to the interface
-  surfExtra(); surfHint(); if(!piano) requestAnimationFrame(drawSurface); }
+  surfExtra(); surfHint(); applyInterfaceSize(); }
 function surfHint(){ el("surfHint").innerHTML = SURFACE==="piano"?"click · QWERTY a s d f… (z/x oct) · MIDI"
   : SURFACE==="hex"?"isomorphic · →+A, ↗+B steps · number = pitch-class · touch or QWERTY rows (z…/a…/q…/1…)"
   : "x = pitch · drag = glide · Y = velocity · multitouch (no key/MIDI map)"; }
@@ -1110,15 +1427,17 @@ function partialLine(p,ampScale){
   return line;
 }
 function init(){
+  dockOverridePanel();
   const presetSelect=el("presetSelect");
   PRESET_GROUPS.forEach(([label,presets])=>{
     const group=document.createElement("optgroup"); group.label=label;
     Object.keys(presets).forEach(n=>{ const option=document.createElement("option"); option.value=n; option.textContent=n; group.appendChild(option); });
     presetSelect.appendChild(group);
   });
-  const loadPreset=n=>{ el("grammar").value=PRESETS[n]; applyGrammar(); };
+  const loadPreset=n=>{ pushHist(); el("grammar").value=PRESETS[n]; applyGrammar(); };
   presetSelect.addEventListener("change",()=>loadPreset(presetSelect.value));
-  presetSelect.value="saw ∞"; loadPreset(presetSelect.value);
+  el("grammar").value=PRESETS["saw ∞"]; applyGrammar(); HIST=[]; refreshHistUI(); // boot preset: no undo entry
+  presetSelect.value="saw ∞";
   el("startBtn").onclick=()=>initAudio();
   el("applyBtn").onclick=applyGrammar; el("ceil").addEventListener("change",applyGrammar);
   el("xref").addEventListener("change",applyGrammar);
@@ -1129,20 +1448,29 @@ function init(){
     document.querySelectorAll(".pane").forEach(z=>z.classList.remove("on")); el("pane-"+t.dataset.p).classList.add("on");
     if(t.dataset.p==="env") drawEnvPlot(); if(t.dataset.p==="tab") renderTabPane(); });
   el("tabCopy").onclick=()=>{ navigator.clipboard&&navigator.clipboard.writeText(el("tabJson").textContent); el("tabCopy").textContent="⧉ copied"; setTimeout(()=>el("tabCopy").textContent="⧉ copy",1200); };
-  el("bakeBtn").onclick=()=>{ if(!PARTIALS.length)return;
-    el("grammar").value="# baked from spectrum\n"+PARTIALS.map(p=>partialLine(p)).join("\n");
-    applyGrammar(); };
+  el("bakeBtn").onclick=()=>{ if(!PARTIALS.length&&!OVR.size)return; bakeSelectiveGraphic(); };
   el("normBtn").onclick=()=>{ try{ const {parts}=buildPartials(el("grammar").value,+el("ceil").value||32,getXref());
-    const mx=Math.max(...parts.map(p=>Math.abs(p.amp)))||1;
+    const mx=Math.max(...parts.map(p=>Math.abs(p.amp)))||1; pushHist();
     el("grammar").value=parts.map(p=>partialLine(p,1/mx)).join("\n");
     applyGrammar(); }catch(e){ el("err").textContent="✕ "+e.message; el("err").className="err"; } };
+  el("undoBtn").onclick=doUndo; el("redoBtn").onclick=doRedo; refreshHistUI();
+  buildSpecToolbar(); setTool("select");
+  [["ovrRatio","ratio"],["ovrAmp","amp"],["ovrPhase","phase"],["ovrA","A"],["ovrD","D"],["ovrS","S"],["ovrR","R"],
+   ["ovrRExpr","rExpr"],["ovrGainExpr","gainExpr"]].forEach(([id,field])=>{
+    const inp=el(id); const commit=()=>commitField(field,inp.value);
+    inp.addEventListener("change",commit);
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();commit();} });
+    if(inp.type==="number") inp.addEventListener("wheel",e=>{ if(inp.disabled)return; e.preventDefault();
+      const step=(+inp.step||1)*(e.shiftKey?10:1), base=+inp.value||0, v=+(base+(e.deltaY<0?step:-step)).toFixed(6);
+      inp.value=v; commit(); },{passive:false}); });
+  el("ovrClearAll").onclick=()=>{ selectedPartials().forEach(p=>OVR.delete(p.pid)); el("ovrErr").textContent=""; applyGrammar(); };
   el("grammar").addEventListener("keydown",e=>{ if(e.ctrlKey&&e.key==="Enter"){e.preventDefault();applyGrammar();} });
   slider("master","masterV",v=>v.toFixed(2),v=>{if(master)master.gain.value=v;});
   slider("atk","atkV",v=>v.toFixed(2)); slider("dec","decV",v=>v.toFixed(2));
   slider("sus","susV",v=>v.toFixed(2)); slider("rel","relV",v=>v.toFixed(2));
   slider("driftC","driftCV",v=>v.toFixed(1)); slider("driftR","driftRV",v=>v.toFixed(2));
   buildKeyboard(); initMIDI();
-  buildSurfChips(); setSurface("piano");
+  buildInterfaceSizeChips(); buildSurfChips(); setSurface("piano");
   el("edo").addEventListener("input",()=>{ TUNING.edo=Math.max(1,Math.min(96,+el("edo").value||12)); drawSurface(); });
   // .tabota import + score transport
   el("tabImport").onclick=()=>el("tabFile").click();
@@ -1151,7 +1479,7 @@ function init(){
   addEventListener("dragover",e=>{ e.preventDefault(); });
   addEventListener("drop",e=>{ e.preventDefault(); const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) readTabFile(f); });
   liveCheck();
-  addEventListener("resize",()=>{ drawSpec(); drawWaveStatic(); drawSurface(); if(el("modal").classList.contains("open"))drawEnvPlot(); });
+  addEventListener("resize",()=>{ drawSpec(); drawWaveStatic(); applyInterfaceSize(); if(el("modal").classList.contains("open"))drawEnvPlot(); });
 }
 init();
 </script>
