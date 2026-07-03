@@ -127,10 +127,11 @@ Single file, `index.html` (~1500 lines). Key state + seams:
   `applyOverrides()` (mutates/filters/adds partials from `OVR`) → redraw/readouts.
 - **`OVR` Map** (pid → `{add?, removed?, ratio?, amp?, phase?, adsr?, rExpr?, gainExpr?}`)
   — the live graphic-edit layer over the grammar. Survives re-apply; bake commits it.
-- **Selection shell** — `TOOL` (`select`/`move`/`add`), `SELMODE`
-  (`replace`/`include`/`exclude`, Shift/Alt override), `SEL` Set of pids, marquee,
+- **Selection shell** — `TOOL` (`select`/`move`/`place`), `SELMODE`
+  (`replace`/`+` include/`-` exclude, Shift/Alt override), `SEL` Set of pids, marquee,
   ring aura; `move` = select-then-drag, axis-locked (y = scale group a_max,
-  x = transpose group ratios by common factor); Delete/Backspace = remove;
+  x = transpose group ratios by common factor); `place` treats `+` as add and
+  `-` as delete-one-point (`replace` is idle); Delete/Backspace = remove selection;
   `restore removed` chip undoes removals (they live only in OVR, outside text-undo).
 - **`bakeSelectiveGraphic()`** — commits OVR to grammar text: literal-born
   override rewrites its line; removed literal deletes its line; sum-born
@@ -168,8 +169,8 @@ non-idle) and canvas width can read 0 in headless eval — test via
 ## Roadmap
 
 ### Graphic spectrum editing (next arc — binlod-ported)
-1. ~~**Selection shell**~~ — **done.** SPECTRUM toolbar: `select`/`move` tool chips,
-   selMode `replace`/`+incl`/`−excl` (+Shift/Alt override), `all`/`none`, undo/redo
+1. ~~**Selection shell**~~ — **done.** SPECTRUM toolbar: `select`/`move`/`place` tool chips,
+   selMode `replace`/`+`/`-` (+Shift/Alt override), `all`/`none`, undo/redo
    (`↶`/`↷`, Ctrl+Z / Ctrl+Shift+Z outside the textarea — native textarea undo still
    handles free typing). Select tool: click a partial to select it (never moves it);
    click+drag empty space = marquee; selected partials get a ring aura. Move tool:
@@ -214,14 +215,15 @@ non-idle) and canvas width can read 0 in headless eval — test via
      transpose all ratios by a common factor (intervals preserved). The gesture is
      axis-locked (first move decides x or y). Drags write to `OVR`, so they carry the
      "modified" badge and bake like any override.
-4. ~~**Graphic add/remove**~~ — **done.** `add` tool click places a live synthetic
+4. ~~**Graphic add/remove**~~ — **done.** `place` + click places a live synthetic
    partial (x→ratio, y→a_max), selects it, and stores it as an override entry until
-   bake. Delete/Backspace outside text fields removes the current selection as live
-   override state: existing grammar partials become invisible `{removed:true}` entries,
-   while newly-added unbaked partials are simply un-added. Readout names invisible
-   state explicitly (`1 removed`, `2 added`) so removal has feedback even though the
-   partial disappears. Bake commits adds as literals, literal removals as deleted
-   lines, and sum removals as `where !(...)` exclusions.
+   bake. `place` - click on a partial removes that one point. Delete/Backspace
+   outside text fields still removes the current selection as live override state:
+   existing grammar partials become invisible `{removed:true}` entries, while
+   newly-added unbaked partials are simply un-added. Readout names invisible state
+   explicitly (`1 removed`, `2 added`) so removal has feedback even though the partial
+   disappears. Bake commits adds as literals, literal removals as deleted lines, and
+   sum removals as `where !(...)` exclusions.
    *(Post-review fixes 2026-07-02: plural labels no longer produce "removeds";
    dead pre-graphic `bakeSelective()` deleted — `bakeSelectiveGraphic()` is the
    only bake; added a `restore removed` toolbar chip, since removed partials are

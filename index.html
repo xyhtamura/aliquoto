@@ -1000,19 +1000,20 @@ function hitPartial(x,y){ if(!SM||!PARTIALS.length)return -1; let best=-1,bd=1e9
     const d=(px-x)**2+(py-y)**2; if(d<bd){bd=d;best=i;} }
   return bd<20*20?best:-1; }
 function refreshSelUI(){ el("selCount").textContent = SEL.size?SEL.size+" selected":""; drawSpec(); if(typeof refreshOverridePanel==="function") refreshOverridePanel(); }
-function setTool(t){ TOOL=t; marquee=null; marqDrag=null;
-  document.querySelectorAll("#specTools .sc").forEach(c=>c.classList.toggle("on",c.dataset.t===t));
-  el("spec").style.cursor=t==="move"?"grab":(t==="add"?"copy":"crosshair");
-  el("specHint").textContent = t==="select" ? "· log₂ ratio axis · click select · drag empty = marquee"
-    : t==="move" ? "· log₂ ratio axis · drag partial = select + move · drag empty = marquee"
-    : "· click spectrum = add partial · x=ratio y=a_max"; }
+function refreshToolChrome(){
+  document.querySelectorAll("#specTools .sc").forEach(c=>c.classList.toggle("on",c.dataset.t===TOOL));
+  el("spec").style.cursor=TOOL==="move"?"grab":(TOOL==="place"?(SELMODE==="include"?"copy":"crosshair"):"crosshair");
+  el("specHint").textContent = TOOL==="select" ? "· log₂ ratio axis · click select · drag empty = marquee"
+    : TOOL==="move" ? "· log₂ ratio axis · drag partial = select + move · drag empty = marquee"
+    : "· PLACE: + click = add · - click point = delete · replace = idle"; }
+function setTool(t){ TOOL=t; marquee=null; marqDrag=null; refreshToolChrome(); }
 function buildSpecToolbar(){
   const tb=el("specTools"); tb.innerHTML="";
-  [["select","select"],["move","move"],["add","add"]].forEach(([id,label])=>{ const b=document.createElement("span"); b.className="sc"+(id===TOOL?" on":"");
+  [["select","select"],["move","move"],["place","place"]].forEach(([id,label])=>{ const b=document.createElement("span"); b.className="sc"+(id===TOOL?" on":"");
     b.dataset.t=id; b.textContent=label; b.onclick=()=>setTool(id); tb.appendChild(b); });
   const mb=el("selModeChips"); mb.innerHTML="";
-  [["replace","replace"],["include","+incl"],["exclude","−excl"]].forEach(([id,label])=>{ const b=document.createElement("span"); b.className="sc"+(id===SELMODE?" on":"");
-    b.dataset.m=id; b.textContent=label; b.onclick=()=>{ SELMODE=id; document.querySelectorAll("#selModeChips .sc").forEach(x=>x.classList.toggle("on",x.dataset.m===id)); }; mb.appendChild(b); });
+  [["replace","replace"],["include","+"],["exclude","-"]].forEach(([id,label])=>{ const b=document.createElement("span"); b.className="sc"+(id===SELMODE?" on":"");
+    b.dataset.m=id; b.textContent=label; b.onclick=()=>{ SELMODE=id; document.querySelectorAll("#selModeChips .sc").forEach(x=>x.classList.toggle("on",x.dataset.m===id)); refreshToolChrome(); }; mb.appendChild(b); });
   el("selAllBtn").onclick=()=>{ SEL=new Set(PARTIALS.map(p=>p.pid)); refreshSelUI(); };
   el("selNoneBtn").onclick=()=>{ SEL.clear(); refreshSelUI(); };
   el("restoreBtn").onclick=()=>restoreRemovedPartials();
@@ -1043,22 +1044,30 @@ function specValuesAt(x,y){ const sm=SM||{lo:0,hi:5,PAD:20,W:el("spec").getBound
 function addPartialAt(x,y){ const v=specValuesAt(x,y), pid="a"+(++ADD_SEQ);
   OVR.set(pid,{add:true,ratio:v.ratio,amp:v.amp,phase:0});
   SEL=new Set([pid]); applyGrammar(); }
-function removeSelectedPartials(){
-  const sel=selectedPartials(); if(!sel.length)return;
-  sel.forEach(p=>{ const o=OVR.get(p.pid);
+function removePartials(parts,clearSel){
+  if(!parts.length)return;
+  parts.forEach(p=>{ const o=OVR.get(p.pid);
     if(o&&o.add) OVR.delete(p.pid);
     else OVR.set(p.pid,Object.assign({},o||{},{removed:true})); });
-  SEL.clear(); applyGrammar();
+  if(clearSel) SEL.clear(); else parts.forEach(p=>SEL.delete(p.pid));
+  applyGrammar();
 }
+function removeSelectedPartials(){ removePartials(selectedPartials(),true); }
 function restoreRemovedPartials(){
   OVR.forEach((o,pid)=>{ if(!o.removed)return; delete o.removed;
     if(!Object.keys(o).length) OVR.delete(pid); });
   applyGrammar();
 }
 el("spec").addEventListener("pointerdown",e=>{
-  if(!SM&&!PARTIALS.length&&TOOL!=="add")return; const {x,y}=specPos(e);
+  const {x,y}=specPos(e);
+  if(!SM&&!PARTIALS.length&&TOOL!=="place")return;
   try{el("spec").setPointerCapture(e.pointerId);}catch(_){}
-  if(TOOL==="add"){ addPartialAt(x,y); return; }
+  if(TOOL==="place"){
+    const mode=selectionMode(e);
+    if(mode==="include"){ addPartialAt(x,y); return; }
+    if(mode==="exclude"){ if(!SM||!PARTIALS.length)return; const i=hitPartial(x,y); if(i>=0) removePartials([PARTIALS[i]],false); return; }
+    return;
+  }
   if(!SM||!PARTIALS.length)return;
   const mode=selectionMode(e), i=hitPartial(x,y);
   if(i>=0){ if(TOOL==="move") startMoveDrag(i,x,y,mode); else applyHitSelection(i,mode,false); return; }
@@ -1077,7 +1086,7 @@ el("spec").addEventListener("pointermove",e=>{
       if(px>=xa&&px<=xb&&py>=ya&&py<=yb) inside.add(p.pid); } }
   SEL=inside; refreshSelUI();
 });
-function endSpecDrag(){ if(dragI>=0){ dragI=-1; moveState=null; el("spec").style.cursor=TOOL==="move"?"grab":"crosshair"; if(typeof refreshOverridePanel==="function")refreshOverridePanel(); readout(); } if(marqDrag){ marqDrag=null; marquee=null; drawSpec(); } }
+function endSpecDrag(){ if(dragI>=0){ dragI=-1; moveState=null; refreshToolChrome(); if(typeof refreshOverridePanel==="function")refreshOverridePanel(); readout(); } if(marqDrag){ marqDrag=null; marquee=null; drawSpec(); } }
 el("spec").addEventListener("pointerup",endSpecDrag);
 el("spec").addEventListener("pointerleave",endSpecDrag);
 el("spec").addEventListener("pointercancel",endSpecDrag);
