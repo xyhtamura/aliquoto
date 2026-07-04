@@ -133,6 +133,7 @@ textarea#grammar{ font-size:13px; line-height:1.65; width:100%; min-height:150px
   border:1px solid #07110b; border-radius:3px; padding:7px 10px; cursor:pointer; transition:.13s; line-height:1;
   text-transform:uppercase; letter-spacing:.035em; box-shadow:inset 0 1px 0 #5b6d4a, 0 1px 0 #edf5bd; }
 .btn:hover{ border-color:var(--magenta); color:#f1f5c4; background:#241722 }
+.btn.on{ background:linear-gradient(180deg,#a7bb6b,#64733e); color:#0a170f; border-color:#263425 }
 .err{ font-size:11.5px; min-height:16px; color:var(--magenta); line-height:1.4 }
 .err.ok{ color:var(--lcd-dim) }
 .divider{ height:2px; background:linear-gradient(90deg,var(--edge2),transparent); margin:2px 0 }
@@ -341,6 +342,19 @@ body.iface-full{ overflow:hidden }
     <div class="sliderrow"><span>spread¢</span><input type="range" id="driftC" min="0" max="50" step=".5" value="0"><output id="driftCV"></output></div>
     <div class="sliderrow"><span>rate Hz</span><input type="range" id="driftR" min="0" max="8" step=".01" value="0"><output id="driftRV"></output></div>
     <div class="help">spread = static random detune per partial · rate&gt;0 = each partial slowly wanders. Dequantize the dead-steady tone.</div>
+
+    <div class="divider"></div>
+    <div class="seclabel">MIDI file</div>
+    <div class="row" style="gap:8px">
+      <label class="btn" for="midiFile" style="font-size:11px;padding:6px 10px;cursor:pointer">⤒ .mid</label>
+      <input type="file" id="midiFile" accept=".mid,.midi,audio/midi" hidden>
+      <span class="help" id="midiInfo" style="margin:0">no file</span>
+    </div>
+    <div class="row" style="gap:8px">
+      <button class="btn" id="midiPlay" disabled style="padding:6px 10px">▶ play</button>
+      <button class="btn" id="midiExport" disabled style="padding:6px 10px">⤓ WAV</button>
+    </div>
+    <div class="help">plays through the current spectrum and EDO; export renders a silent offline WAV.</div>
   </div></aside>
 
   <main class="main">
@@ -631,6 +645,10 @@ class Additive extends AudioWorkletProcessor{
     this.expr=this.P.map(p=>({r:p.dyn&&p.dyn.r?{...p.dyn.r,fn:wcompile(p.dyn.r.expr,p.dyn.r.vars)}:null,
       gains:(p.gains||[]).map(expr=>({expr,fn:wcompile(expr,["t","r","hz","f0","a"])}))}));
     this.norm=this.P.reduce((s,x)=>s+Math.abs(x.amp),0)||1;this.dead=false;
+    if(p.relAt!=null){
+      this.relLevel=this.P.map((_,i)=>this.ads(i,p.relAt));
+      this.relAt=p.relAt; this.killAt=p.relAt+this.P.reduce((m,p)=>Math.max(m,(p.adsr&&p.adsr.r)||0.02),0)+0.08;
+    }
     this.port.onmessage=e=>{const d=e.data||{};
       if(d==='stop'||d.type==='stop')this.dead=true;
       else if(d.type==='release'){ const at=d.at||currentTime;
@@ -832,30 +850,34 @@ function resolvedToNotes(out){
 
 let SCORE=null, scoreNodes=[], scorePlaying=false, scoreTimer=null;
 function killVoice(rec){ try{ if(rec.driftTimer)clearInterval(rec.driftTimer); if(rec.node){rec.node.port.postMessage("stop");rec.node.disconnect();} if(rec.oscs)rec.oscs.forEach(x=>{try{x.o.stop();}catch(e){}}); rec.env.disconnect(); }catch(e){} }
-function scheduleVoice(note,at,dur){
-  const env=AC.createGain(); env.gain.value=0; env.connect(master);
+function scheduleVoice(note,at,dur,opts){
+  opts=opts||{};
+  const ctx=opts.ctx||AC, dest=opts.dest||master, pool=opts.pool===undefined?scoreNodes:opts.pool;
+  const env=ctx.createGain(); env.gain.value=0; env.connect(dest);
   const dc=formulaOwnsDrift()?0:+el("driftC").value, dr=formulaOwnsDrift()?0:+el("driftR").value;
-  const parts=audioParts(), maxR=maxPartRelease(parts);
+  const parts=opts.parts||audioParts(), maxR=maxPartRelease(parts);
   const rec={node:null,oscs:null,env,baseHz:note.pts[0].hz,dc,dr,driftTimer:null};
-  if(workletReady){
-    const node=new AudioWorkletNode(AC,"additive",{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr,startAt:at}});
+  if(opts.forceWorklet || (ctx===AC && workletReady)){
+    const node=new AudioWorkletNode(ctx,"additive",{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{parts,driftCents:dc,driftRate:dr,startAt:at,relAt:at+dur}});
     const f0=node.parameters.get("f0"); f0.setValueAtTime(Math.max(1e-4,note.pts[0].hz),at);
     for(let i=1;i<note.pts.length;i++) rampParam(f0,note.pts[i].hz,at+note.pts[i].t,note.pts[i].curve);
-    node.connect(env); rec.node=node; node.port.postMessage({type:"release",at:at+dur});
+    node.connect(env); rec.node=node;
   } else { rec.oscs=[]; const norm=parts.reduce((s,p)=>s+Math.abs(p.amp),0)||1; const f0=note.pts[0].hz;
-    for(const p of parts){ const dynR=compileDynRatio(p.dyn&&p.dyn.r), ratio0=dynRatioAt(dynR,0,p.ratio), f=f0*ratio0; if(f<=0||f>AC.sampleRate/2)continue;
+    for(const p of parts){ const dynR=compileDynRatio(p.dyn&&p.dyn.r), ratio0=dynRatioAt(dynR,0,p.ratio), f=f0*ratio0; if(f<=0||f>ctx.sampleRate/2)continue;
       const rnd=Math.random()*2-1,lfo=Math.random()*Math.PI*2,gainFns=compileGainFns(p.gains),baseGain=p.amp/norm;
-      const o=AC.createOscillator(); o.type="sine"; o.frequency.value=driftedHz(f0,ratio0,dc,dr,rnd,lfo,at); const g=AC.createGain();
+      const o=ctx.createOscillator(); o.type="sine"; o.frequency.value=driftedHz(f0,ratio0,dc,dr,rnd,lfo,at); const g=ctx.createGain();
       if(gainFns.length) g.gain.setValueAtTime(baseGain*dynGainAt(gainFns,0,ratio0,f,f0,Math.abs(p.amp)),at); else schedulePartGain(g,baseGain,p.adsr,at,dur);
       o.connect(g); g.connect(env); o.start(at); rec.oscs.push({o,g,ratio:p.ratio,dynR,gainFns,baseGain,amp:p.amp,adsr:p.adsr,rnd,lfo}); }
-    if((dc>0&&dr>0)||parts.some(p=>(p.dyn&&p.dyn.r)||(p.gains&&p.gains.length))) rec.driftTimer=setInterval(()=>{ const t=AC.currentTime, age=Math.max(0,t-at); for(const x of rec.oscs){ const ratio=dynRatioAt(x.dynR,age,x.ratio), f=driftedHz(rec.baseHz,ratio,dc,dr,x.rnd,x.lfo,t); try{x.o.frequency.setTargetAtTime(f,t,0.015);}catch(e){} if(x.gainFns&&x.gainFns.length){ const gain=x.baseGain*dynGainAt(x.gainFns,age,ratio,f,rec.baseHz,Math.abs(x.amp)); try{x.g.gain.setTargetAtTime(gain,t,0.015);}catch(e){} } } },33); }
+    if((dc>0&&dr>0)||parts.some(p=>(p.dyn&&p.dyn.r)||(p.gains&&p.gains.length))) rec.driftTimer=setInterval(()=>{ const t=ctx.currentTime, age=Math.max(0,t-at); for(const x of rec.oscs){ const ratio=dynRatioAt(x.dynR,age,x.ratio), f=driftedHz(rec.baseHz,ratio,dc,dr,x.rnd,x.lfo,t); try{x.o.frequency.setTargetAtTime(f,t,0.015);}catch(e){} if(x.gainFns&&x.gainFns.length){ const gain=x.baseGain*dynGainAt(x.gainFns,age,ratio,f,rec.baseHz,Math.abs(x.amp)); try{x.g.gain.setTargetAtTime(gain,t,0.015);}catch(e){} } } },33); }
   const v=note.vel,peak=0.9*(0.3+0.7*v),rel=at+dur;
   env.gain.setValueAtTime(0,at); env.gain.linearRampToValueAtTime(peak,at+0.003); env.gain.setValueAtTime(peak,rel+maxR); env.gain.linearRampToValueAtTime(0,rel+maxR+0.02);
   const killAt=rel+maxR+0.05; if(rec.oscs) rec.oscs.forEach(x=>{try{x.o.stop(rel+x.adsr.r+0.03);}catch(e){}});
-  scoreNodes.push(rec); setTimeout(()=>{ const i=scoreNodes.indexOf(rec); if(i>=0){killVoice(rec);scoreNodes.splice(i,1);} }, Math.max(0,(killAt-AC.currentTime)*1000));
+  if(pool){ pool.push(rec); setTimeout(()=>{ const i=pool.indexOf(rec); if(i>=0){killVoice(rec);pool.splice(i,1);} }, Math.max(0,(killAt-ctx.currentTime)*1000)); }
+  return rec;
 }
 function playScore(){ if(!SCORE||!SCORE.notes.length) return;
   initAudio().then(()=>{ if(!AC)return; if(scorePlaying){ stopScore(); return; }
+    if(typeof midiPlaying==="function" && midiPlaying()) stopMidi();
     scorePlaying=true; el("tabPlay").textContent="■ stop";
     const t0=AC.currentTime+0.12; for(const n of SCORE.notes) scheduleVoice(n,t0+n.startSec,n.dur);
     scoreTimer=setTimeout(stopScore,(SCORE.total+maxPartRelease()+0.4)*1000); }); }
@@ -1472,6 +1494,114 @@ function onMIDI(ev){ const [st,d1,d2]=ev.data, cmd=st&0xf0;
   if(cmd===0x90&&d2>0) initAudio().then(()=>kbNoteOn(d1,d2/127));
   else if(cmd===0x80||(cmd===0x90&&d2===0)) kbNoteOff(d1); }
 
+/* ================= MIDI FILE — import → audition / offline WAV ================= */
+let MIDI_NOTES=null, MIDI_DUR=0, MIDI_NAME="aliquoto";
+let midiTimer=null, midiNodes=[], midiEndTimer=null;
+function fmtTime(s){ const m=Math.floor(s/60), ss=Math.round(s%60); return m+":"+String(ss).padStart(2,"0"); }
+function readVarLen(dv,P){ let v=0,b; do{ b=dv.getUint8(P.i++); v=(v<<7)|(b&0x7f); }while(b&0x80); return v; }
+function parseMIDI(buf){
+  const dv=new DataView(buf); let i=0;
+  const tag=at=>String.fromCharCode(dv.getUint8(at),dv.getUint8(at+1),dv.getUint8(at+2),dv.getUint8(at+3));
+  if(dv.byteLength<14||tag(0)!=="MThd") throw new Error("not a MIDI file");
+  const ntrk=dv.getUint16(10), div=dv.getUint16(12); i=14;
+  if(div&0x8000) throw new Error("SMPTE timing unsupported");
+  const tpqn=div||480, tempos=[], raw=[];
+  for(let t=0;t<ntrk;t++){
+    if(i+8>dv.byteLength||tag(i)!=="MTrk") throw new Error("bad track "+t);
+    const len=dv.getUint32(i+4), end=i+8+len; let tick=0, status=0; const P={i:i+8};
+    while(P.i<end){
+      tick+=readVarLen(dv,P);
+      let b=dv.getUint8(P.i);
+      if(b&0x80){ status=b; P.i++; }
+      const cmd=status&0xf0, ch=status&0x0f;
+      if(status===0xff){ const meta=dv.getUint8(P.i++), l=readVarLen(dv,P);
+        if(meta===0x51&&l===3){ const us=(dv.getUint8(P.i)<<16)|(dv.getUint8(P.i+1)<<8)|dv.getUint8(P.i+2); tempos.push({tick,us}); }
+        P.i+=l; }
+      else if(status===0xf0||status===0xf7){ const l=readVarLen(dv,P); P.i+=l; }
+      else if(cmd===0x90||cmd===0x80){ const n=dv.getUint8(P.i++), v=dv.getUint8(P.i++); raw.push({tick,ch,n,on:cmd===0x90&&v>0,vel:v}); }
+      else if(cmd===0xa0||cmd===0xb0||cmd===0xe0){ P.i+=2; }
+      else if(cmd===0xc0||cmd===0xd0){ P.i+=1; }
+      else { P.i++; }
+    }
+    i=end;
+  }
+  tempos.sort((a,b)=>a.tick-b.tick); if(!tempos.length||tempos[0].tick>0) tempos.unshift({tick:0,us:500000});
+  const tickToSec=tk=>{ let sec=0,last=0,us=tempos[0].us;
+    for(const tp of tempos){ if(tp.tick>=tk)break; sec+=((tp.tick-last)/tpqn)*(us/1e6); last=tp.tick; us=tp.us; }
+    return sec+((tk-last)/tpqn)*(us/1e6); };
+  raw.sort((a,b)=>a.tick-b.tick||(a.on?1:0)-(b.on?1:0));
+  const open={}, notes=[];
+  for(const e of raw){ const key=e.ch+":"+e.n;
+    if(e.on){ (open[key]=open[key]||[]).push(e); }
+    else { const st=open[key]&&open[key].shift(); if(st){ const t0=tickToSec(st.tick);
+      notes.push({n:st.n,t:t0,dur:Math.max(0.03,tickToSec(e.tick)-t0),vel:st.vel/127}); } } }
+  for(const key in open) for(const st of open[key]){ const t0=tickToSec(st.tick); notes.push({n:st.n,t:t0,dur:0.3,vel:st.vel/127}); }
+  notes.sort((a,b)=>a.t-b.t);
+  return {notes,dur:notes.reduce((m,x)=>Math.max(m,x.t+x.dur),0)};
+}
+function midiNoteToVoice(nt){ return {startSec:nt.t,dur:nt.dur,pts:[{t:0,hz:TUNING.toHz(nt.n),curve:"linear"}],vel:nt.vel}; }
+function midiPlaying(){ return !!(midiTimer||midiEndTimer); }
+function stopMidi(){
+  if(midiTimer){ clearInterval(midiTimer); midiTimer=null; }
+  if(midiEndTimer){ clearTimeout(midiEndTimer); midiEndTimer=null; }
+  midiNodes.forEach(killVoice); midiNodes=[];
+  const b=el("midiPlay"); if(b){ b.classList.remove("on"); b.textContent="▶ play"; }
+}
+function playMidi(){ if(!MIDI_NOTES||!MIDI_NOTES.length)return;
+  initAudio().then(()=>{ if(!AC)return; if(scorePlaying) stopScore(); stopMidi();
+    const base=AC.currentTime+0.12, notes=MIDI_NOTES; let idx=0;
+    const b=el("midiPlay"); b.classList.add("on"); b.textContent="■ stop";
+    midiTimer=setInterval(()=>{ const horizon=AC.currentTime+0.25;
+      while(idx<notes.length && base+notes[idx].t<horizon){ const nt=notes[idx++]; scheduleVoice(midiNoteToVoice(nt),base+nt.t,nt.dur,{pool:midiNodes}); }
+      if(idx>=notes.length){ clearInterval(midiTimer); midiTimer=null;
+        const endAt=base+MIDI_DUR+maxPartRelease()+0.4;
+        midiEndTimer=setTimeout(stopMidi,Math.max(100,(endAt-AC.currentTime)*1000)); }
+    },50);
+  }).catch(()=>{});
+}
+async function exportMidiWav(){ if(!MIDI_NOTES||!MIDI_NOTES.length)return;
+  const btn=el("midiExport"), old=btn.textContent; btn.disabled=true; btn.textContent="rendering...";
+  try{
+    if(!PARTIALS.length) throw new Error("no spectrum");
+    const Ctor=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    if(!Ctor) throw new Error("no OfflineAudioContext");
+    const parts=audioParts(), sr=44100, tail=maxPartRelease(parts)+0.45, len=Math.max(1,Math.ceil((MIDI_DUR+tail)*sr));
+    const OC=new Ctor(2,len,sr);
+    if(!OC.audioWorklet) throw new Error("no offline worklet");
+    const url=URL.createObjectURL(new Blob([WORKLET_SRC],{type:"application/javascript"}));
+    await OC.audioWorklet.addModule(url); URL.revokeObjectURL(url);
+    const c=OC.createDynamicsCompressor(), mst=OC.createGain(); mst.gain.value=+el("master").value||0.5;
+    mst.connect(c); c.connect(OC.destination);
+    for(const nt of MIDI_NOTES) scheduleVoice(midiNoteToVoice(nt),nt.t,nt.dur,{ctx:OC,dest:mst,forceWorklet:true,pool:null,parts});
+    const rendered=await OC.startRendering();
+    downloadWav(rendered,(MIDI_NAME||"aliquoto").replace(/[\\/:*?"<>|]+/g,"-")+".wav");
+    btn.textContent="saved"; setTimeout(()=>{ btn.textContent=old; btn.disabled=false; },1400);
+  }catch(e){ console.warn("MIDI export failed",e); btn.textContent="error";
+    el("midiInfo").textContent="✕ "+(e.message||"export failed"); setTimeout(()=>{ btn.textContent=old; btn.disabled=false; },2200); }
+}
+function downloadWav(buf,name){
+  const nch=buf.numberOfChannels, sr=buf.sampleRate, N=buf.length, bytes=44+N*nch*2;
+  const ab=new ArrayBuffer(bytes), dv=new DataView(ab);
+  const ws=(o,s)=>{ for(let k=0;k<s.length;k++)dv.setUint8(o+k,s.charCodeAt(k)); };
+  ws(0,"RIFF"); dv.setUint32(4,bytes-8,true); ws(8,"WAVE"); ws(12,"fmt "); dv.setUint32(16,16,true);
+  dv.setUint16(20,1,true); dv.setUint16(22,nch,true); dv.setUint32(24,sr,true);
+  dv.setUint32(28,sr*nch*2,true); dv.setUint16(32,nch*2,true); dv.setUint16(34,16,true);
+  ws(36,"data"); dv.setUint32(40,N*nch*2,true);
+  const ch=[]; for(let c=0;c<nch;c++)ch.push(buf.getChannelData(c));
+  let off=44; for(let i=0;i<N;i++) for(let c=0;c<nch;c++){ let s=Math.max(-1,Math.min(1,ch[c][i])); dv.setInt16(off,s<0?s*0x8000:s*0x7fff,true); off+=2; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([ab],{type:"audio/wav"})); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function loadMidiFile(f){ if(!f)return; MIDI_NAME=f.name.replace(/\.(mid|midi)$/i,"")||"aliquoto";
+  const rd=new FileReader(); rd.onload=()=>{ try{ const {notes,dur}=parseMIDI(rd.result);
+    MIDI_NOTES=notes; MIDI_DUR=dur; stopMidi();
+    el("midiInfo").textContent=notes.length?`${notes.length} notes · ${fmtTime(dur)}`:"no notes";
+    el("midiPlay").disabled=el("midiExport").disabled=!notes.length;
+    el("err").className="err ok"; el("err").textContent=notes.length?`⤒ ${f.name}: ${notes.length} MIDI notes · ${dur.toFixed(1)}s`:`⤒ ${f.name}: no notes`;
+  }catch(err){ MIDI_NOTES=null; MIDI_DUR=0; stopMidi(); el("midiInfo").textContent="✕ "+err.message; el("midiPlay").disabled=el("midiExport").disabled=true; } };
+  rd.readAsArrayBuffer(f); }
+function isMidiFile(f){ return !!(f&&/\.midi?$/i.test(f.name)); }
+
 /* ================= WIRE ================= */
 function slider(id,out,fmt,cb){ const s=el(id),o=el(out); const u=()=>{o.textContent=fmt(+s.value);cb&&cb(+s.value);}; s.addEventListener("input",u); u(); }
 function partialLine(p,ampScale){
@@ -1537,8 +1667,11 @@ function init(){
   el("tabImport").onclick=()=>el("tabFile").click();
   el("tabFile").addEventListener("change",e=>{ readTabFile(e.target.files[0]); e.target.value=""; });
   el("tabPlay").onclick=playScore;
+  el("midiFile").addEventListener("change",e=>{ loadMidiFile(e.target.files[0]); e.target.value=""; });
+  el("midiPlay").onclick=()=>{ midiPlaying()?stopMidi():playMidi(); };
+  el("midiExport").onclick=exportMidiWav;
   addEventListener("dragover",e=>{ e.preventDefault(); });
-  addEventListener("drop",e=>{ e.preventDefault(); const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) readTabFile(f); });
+  addEventListener("drop",e=>{ e.preventDefault(); const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f){ if(isMidiFile(f)) loadMidiFile(f); else readTabFile(f); } });
   liveCheck();
   addEventListener("resize",()=>{ drawSpec(); drawWaveStatic(); applyInterfaceSize(); if(el("modal").classList.contains("open"))drawEnvPlot(); });
 }
