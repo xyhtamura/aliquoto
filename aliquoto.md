@@ -185,7 +185,8 @@ non-idle) and canvas width can read 0 in headless eval — test via
    when something's selected ("nothing selected edits globals" — the sidebar's grammar
    text + Voice/ADSR/drift controls). Fields: `ratio`, `a_max`, `phase°`, ADSR
    `A`/`D`/`S`/`R` (+ a mini envelope graph of the first selected partial's shape),
-   `r(t)` override, `gain(t)` override. Multiple selected → mixed values show blank
+   `r(n,t)` override, `gain(n,t)` override, and a `drift↯` chip (fills `r(n,t)`
+   with a per-partial pitch-drift template). Multiple selected → mixed values show blank
    (tabota contextual-editor pattern); editing writes to every selected partial.
    Blank a field + commit (Enter/blur) clears just that override, falling back to
    the global formula on the next apply. Editing one ADSR field freezes the other
@@ -203,10 +204,11 @@ non-idle) and canvas width can read 0 in headless eval — test via
    exclusion to that sum (composing with any existing `where`) and appends the
    partial as a literal under a `# — baked overrides —` marker (placed after any
    `env`/`adsr`/`gain` lines so those don't re-touch it). With no overrides at all,
-   bake still full-flattens as before. Overrides carrying `r(t)`/`gain(t)` can't
-   become a static literal, so they're **kept live** and the status notes "N dynamic
-   override(s) kept live" — this is where the per-partial-`gain` literal syntax
-   decision (8th field vs `gain@id`) still waits.
+   bake still full-flattens as before. An `r(n,t)` override **now bakes** — its
+   expr is index/`r`/`f()`-substituted to a pure `t`-function (see 3a) and emitted
+   as a literal `expr : a : p` line, so per-partial motion survives bake. Only
+   `gain(n,t)` overrides stay **kept live** ("N dynamic override(s) kept live") —
+   there's no per-partial-`gain` literal syntax yet (8th field vs `gain@id` still open).
    - **Override editing got richer too:** the panel's numeric fields are now number
      spinners with arrows + wheel-nudge (Shift = ×10 step). For a **multi-selection**,
      `ratio` and `a_max` disable (an absolute number is ambiguous across a group) —
@@ -215,6 +217,28 @@ non-idle) and canvas width can read 0 in headless eval — test via
      transpose all ratios by a common factor (intervals preserved). The gesture is
      axis-locked (first move decides x or y). Drags write to `OVR`, so they carry the
      "modified" badge and bake like any override.
+   - ~~**Override expression vocabulary (`n` / `r` / `f()`)**~~ — **done (2026-07-04).**
+     The `r(n,t)` and `gain(n,t)` override fields see more than `t`:
+     - **`n`** (and any other sum index name, e.g. `m`) — this partial's index value.
+       `n+sin(t+1)` = LFO pitch wobble on one partial; blank `n` drops it to fundamental.
+     - **`r`** — this partial's base ratio, for relative modulation: `r*(1+.01*sin(t))`.
+     - **`f(x)`** — the partial's **global ratio formula** evaluated at index `= x`.
+       `f(n)` = its own ratio; `f(t)` = a continuous sweep through the same curve;
+       `f(n)*f(t)`, `f(sin(t))` etc. compose. Only defined for a **single-index sum
+       whose ratio has no `t`** — else the field errors (`f() needs a single-index
+       sum` / `f() unavailable: global r(n,t) already depends on t` / `f() needs a
+       partial from a sum` for literals).
+     Mechanism: `n`, `r`, and `f()` are all **constant per partial**, so they're
+     substituted numerically at commit (`idxBindings`/`substVars`/`expandF` — `f()`
+     is a balanced-paren macro inlining the stored `idx.rE`). The stored override
+     expr stays symbolic (panel shows `f(n)*f(t)`); each partial resolves to its own
+     numbers, so a multi-selection with one expr auto-decorrelates by `n`. Result is
+     a pure `t`-function → **zero worklet change and it bakes** (see 3). `gain` gets
+     `n`/`f()` substituted but keeps `t,r,hz,f0,a` live (runtime supplies them).
+     Sum partials now carry `idx:{vars,vals,rE}` from `buildPartials` to feed this.
+     drift↯ chip = one-click template `r*2**(15*sin(tau*3*t+n)/1200)` (15¢, 3 Hz;
+     `+r` phase when no `n`). Still open: callable `f` isn't yet a true runtime fn
+     (no `f(n)` when global r has `t`); no per-partial gain-bake syntax.
 4. ~~**Graphic add/remove**~~ — **done.** `place` + click places a live synthetic
    partial (x→ratio, y→a_max), selects it, and stores it as an override entry until
    bake. `place` - click on a partial removes that one point. Delete/Backspace

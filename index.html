@@ -374,11 +374,12 @@ body.iface-full{ overflow:hidden }
         </div>
       </div>
       <div class="row" style="gap:14px;margin-top:6px">
-        <label class="field" style="flex:1;min-width:160px">r(t) override <input type="text" id="ovrRExpr" placeholder="e.g. t+1"></label>
-        <label class="field" style="flex:1;min-width:160px">gain(t) override <input type="text" id="ovrGainExpr" placeholder="e.g. adsr(t,.01,.2,.7,.4)"></label>
+        <label class="field" style="flex:1;min-width:160px">r(n,t) override <input type="text" id="ovrRExpr" placeholder="e.g. n+sin(t+1)"></label>
+        <label class="field" style="flex:1;min-width:160px">gain(n,t) override <input type="text" id="ovrGainExpr" placeholder="e.g. adsr(t,.01,.2,.7,.4)"></label>
+        <span class="chip" id="ovrDrift" style="padding:2px 8px;font-size:10px;align-self:center" title="fill r(n,t) with a per-partial pitch-drift template">drift↯</span>
       </div>
       <div class="help" id="ovrErr" style="color:var(--magenta);min-height:14px"></div>
-      <div class="help">Blank a field + commit (Enter/blur) to clear that one override and fall back to the global formula. Multiple selected + mixed values show blank; editing writes to all selected.</div>
+      <div class="help">r/gain exprs see <b>n</b> (this partial's index — <b>r</b> its base ratio), <b>t</b> (seconds), and <b>f(x)</b> = the global ratio formula at index x (single-index, t-free sums). e.g. <code>n+sin(t+1)</code> = LFO pitch wobble; <code>f(n)*f(t)</code> sweeps the global curve; blank drops to fundamental. drift↯ = per-partial drift as an expr. Blank a field + commit (Enter/blur) to clear it and fall back to the global formula.</div>
     </div>
     <div class="screen" id="waveCard"><div class="cap">WAVE <span class="hint">· Σ aₙ sin(2π rₙ t + φₙ) · live=magenta</span></div><canvas id="wave"></canvas></div>
     <div class="readout" id="readout"></div>
@@ -505,7 +506,7 @@ function buildPartials(text,ceil,f0ref){
         if(fw && !fw(...c,r,hz,f0ref)) continue;
         const a=fa(...c,r,hz,f0ref), p=fp(...c,r,hz,f0ref);
         if(!isFinite(r)||!isFinite(a)||!isFinite(p)||a===0) continue;
-        const pt={ratio:r,amp:a,phase:p*Math.PI/180,pid:"s"+li+":"+c.join(",")};
+        const pt={ratio:r,amp:a,phase:p*Math.PI/180,pid:"s"+li+":"+c.join(","),idx:{vars:[...vars],vals:[...c],rE}};
         if(rHasT){ pt.dyn={r:{expr:rE,vars:[...vars,"t"],vals:[...c]}}; meta.dynamicRatio=true; }
         if(fads) pt.adsr=evalADSR(fads,[...c,r,hz,f0ref]);
         parts.push(pt);
@@ -1114,12 +1115,51 @@ let OVR=new Map(); // pid -> {add?,removed?,ratio?,amp?,phase?,adsr?:{a,d,s,r},r
 const ADSRFIELDS=["A","D","S","R"];
 function selectedPartials(){ return PARTIALS.filter(p=>SEL.has(p.pid)); }
 function dockOverridePanel(){ const dock=el("ovrDock"), card=el("ovrCard"); if(dock&&card&&!dock.contains(card)) dock.appendChild(card); }
+// per-partial substitution: idx vars (n,m…) and base ratio r are CONSTANT per partial,
+// so bake them in numerically → override exprs stay pure functions of t (+live gain vars).
+function idxBindings(p){ const b={names:[],vals:[]};
+  if(p&&p.idx&&p.idx.vars) p.idx.vars.forEach((v,i)=>{ b.names.push(v); b.vals.push(p.idx.vals[i]); });
+  return b; }
+function substVars(expr,names,vals){ let s=String(expr);
+  names.forEach((nm,i)=>{ const esc=nm.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    s=s.replace(new RegExp("\\b"+esc+"\\b","g"),"("+vals[i]+")"); });
+  return s; }
+// f(x) = the global ratio formula for this partial's sum, evaluated with its index = x.
+// Inlined as a macro (not a runtime fn) so it substitutes away + bakes to a plain expr.
+// Well-defined only for a single-index sum whose ratio has no t (else f isn't unary in the index).
+function fInfo(p){ if(!p||!p.idx||p.idx.rE==null) throw new Error("f() needs a partial from a sum");
+  if(p.idx.vars.length!==1) throw new Error("f() needs a single-index sum");
+  if(hasT(p.idx.rE)) throw new Error("f() unavailable: global r(n,t) already depends on t");
+  return {rE:p.idx.rE, idxVar:p.idx.vars[0]}; }
+function expandF(expr,rE,idxVar){ let out="",i=0;
+  while(i<expr.length){ const c=expr[i], prev=expr[i-1]||"";
+    if(c==="f" && !/[A-Za-z0-9_]/.test(prev)){ let k=i+1; while(k<expr.length && /\s/.test(expr[k])) k++;
+      if(expr[k]==="("){ let depth=0,j=k; for(;j<expr.length;j++){ if(expr[j]==="(")depth++; else if(expr[j]===")"){ if(--depth===0)break; } }
+        if(j>=expr.length) throw new Error("f(): unbalanced ()");
+        const arg=expandF(expr.slice(k+1,j),rE,idxVar);           // f() may nest
+        out+="("+substVars(rE,[idxVar],["("+arg+")"])+")"; i=j+1; continue; } }
+    out+=c; i++; }
+  return out; }
+function fExpand(p,raw){ if(!/\bf\s*\(/.test(raw)) return raw; const fi=fInfo(p); return expandF(raw,fi.rE,fi.idxVar); }
+// rExpr sees: t, this partial's idx (n…), r=base ratio, f()=global ratio formula. All but t reduce to numbers.
+function rExprFor(p,raw){ const b=idxBindings(p); return substVars(fExpand(p,raw),[...b.names,"r"],[...b.vals,p.ratio]); }
+// gainExpr sees: idx (n…) + f() substituted; t,r,hz,f0,a stay live (runtime supplies them).
+function gainExprFor(p,raw){ const b=idxBindings(p); return substVars(fExpand(p,raw),b.names,b.vals); }
+function applyRExpr(p,raw){ const expr=rExprFor(p,raw);
+  const v0=compileExpr(expr,["t"])(0);
+  if(!isFinite(v0)||v0<=0) return;
+  p.ratio=v0;
+  if(hasT(expr)) p.dyn={r:{expr,vars:["t"],vals:[]}}; }
+function applyGainExpr(p,raw){ const expr=gainExprFor(p,raw);
+  compileExpr(expr,["t","r","hz","f0","a"]);   // validate
+  p.gains=[expr]; }
+// a dyn ratio is a bakeable literal only when its free vars reduce to t (override-substituted)
+function rIsBakeableExpr(p){ return !!(p.dyn&&p.dyn.r&&p.dyn.r.vars&&p.dyn.r.vars.length===1&&p.dyn.r.vars[0]==="t"&&hasT(p.dyn.r.expr)); }
 function partialFromOverride(pid,o){
   const p={pid,ratio:o.ratio??1,amp:o.amp??1,phase:(o.phase||0)*Math.PI/180,added:!!o.add};
   if(o.adsr) p.adsr=ADSR(o.adsr.a,o.adsr.d,o.adsr.s,o.adsr.r);
-  if(o.rExpr){ try{ const fn=compileExpr(o.rExpr,["t"]); const v0=fn(0);
-    if(isFinite(v0)&&v0>0){ p.ratio=v0; p.dyn={r:{expr:o.rExpr,vars:["t"],vals:[]}}; } }catch(e){} }
-  if(o.gainExpr){ try{ compileExpr(o.gainExpr,["t","r","hz","f0","a"]); p.gains=[o.gainExpr]; }catch(e){} }
+  if(o.rExpr){ try{ applyRExpr(p,o.rExpr); }catch(e){} }
+  if(o.gainExpr){ try{ applyGainExpr(p,o.gainExpr); }catch(e){} }
   return p;
 }
 function applyOverrides(){
@@ -1129,9 +1169,8 @@ function applyOverrides(){
     if(o.amp!=null) p.amp=o.amp;
     if(o.phase!=null) p.phase=o.phase*Math.PI/180;
     if(o.adsr) p.adsr=ADSR(o.adsr.a,o.adsr.d,o.adsr.s,o.adsr.r);
-    if(o.rExpr){ try{ const fn=compileExpr(o.rExpr,["t"]); const v0=fn(0);
-      if(isFinite(v0)&&v0>0){ p.ratio=v0; p.dyn={r:{expr:o.rExpr,vars:["t"],vals:[]}}; } }catch(e){} }
-    if(o.gainExpr){ try{ compileExpr(o.gainExpr,["t","r","hz","f0","a"]); p.gains=[o.gainExpr]; }catch(e){} }
+    if(o.rExpr){ try{ applyRExpr(p,o.rExpr); }catch(e){} }
+    if(o.gainExpr){ try{ applyGainExpr(p,o.gainExpr); }catch(e){} }
     next.push(p);
   }
   OVR.forEach((o,pid)=>{ if(o.add) next.push(partialFromOverride(pid,o)); });
@@ -1156,7 +1195,11 @@ function clearOverrideField(field){
 function commitField(field,raw){
   if(raw==null||raw.trim()===""){ clearOverrideField(field); return; }
   if(field==="rExpr"||field==="gainExpr"){
-    try{ compileExpr(raw,field==="rExpr"?["t"]:["t","r","hz","f0","a"]); }catch(e){ el("ovrErr").textContent="✕ "+e.message; return; }
+    const sel=selectedPartials();
+    for(const p of sel){ try{
+      if(field==="rExpr") compileExpr(rExprFor(p,raw),["t"]);
+      else compileExpr(gainExprFor(p,raw),["t","r","hz","f0","a"]);
+    }catch(e){ el("ovrErr").textContent="✕ "+e.message; return; } }
     setOverrideField(field,raw); return; }
   const v=+raw; if(!isFinite(v)){ el("ovrErr").textContent="✕ "+field+": not a number"; return; }
   setOverrideField(field,v);
@@ -1183,15 +1226,17 @@ function refreshOverridePanel(){
   const adsrs=sel.map(p=>partADSR(p));
   setNum("ovrA",commonOrBlank(adsrs.map(a=>a.a))); setNum("ovrD",commonOrBlank(adsrs.map(a=>a.d)));
   setNum("ovrS",commonOrBlank(adsrs.map(a=>a.s))); setNum("ovrR",commonOrBlank(adsrs.map(a=>a.r)));
-  const rExprs=[...new Set(sel.map(p=>(p.dyn&&p.dyn.r&&p.dyn.r.expr)||""))].filter(Boolean);
-  el("ovrRExpr").value = rExprs.length===1?rExprs[0]:""; el("ovrRExpr").placeholder = rExprs.length>1?"(mixed)":"e.g. t+1";
-  const gExprs=[...new Set(sel.map(p=>(p.gains&&p.gains[p.gains.length-1])||""))].filter(Boolean);
+  const rExprs=[...new Set(sel.map(p=>{ const o=OVR.get(p.pid); return (o&&o.rExpr)||(p.dyn&&p.dyn.r&&p.dyn.r.expr)||""; }))].filter(Boolean);
+  el("ovrRExpr").value = rExprs.length===1?rExprs[0]:""; el("ovrRExpr").placeholder = rExprs.length>1?"(mixed)":"e.g. n+sin(t+1)";
+  const gExprs=[...new Set(sel.map(p=>{ const o=OVR.get(p.pid); return (o&&o.gainExpr)||(p.gains&&p.gains[p.gains.length-1])||""; }))].filter(Boolean);
   el("ovrGainExpr").value = gExprs.length===1?gExprs[0]:""; el("ovrGainExpr").placeholder = gExprs.length>1?"(mixed)":"e.g. adsr(t,.01,.2,.7,.4)";
   drawAdsrMini(adsrs[0]||defaultADSR());
 }
 
 /* ---- BAKE v2 — selective: only overridden partials become literal, untouched sums stay ---- */
 function ovrIsStatic(o){ return o && !o.rExpr && !o.gainExpr; }
+// rExpr bakes to a literal r(t) line; gainExpr can't (no per-partial gain grammar) → stays live
+function ovrBakeable(o){ return o && !o.gainExpr; }
 function sumVars(line){ const body=line.replace(/^\s*sum\b/i,""); const decl=body.split(":")[0];
   return [...decl.matchAll(/([A-Za-z_]\w*)\s*=/g)].map(m=>m[1]); }
 function bakeSelectiveGraphic(){
@@ -1205,10 +1250,10 @@ function bakeSelectiveGraphic(){
       (excl[li]||(excl[li]=[])).push(tuple); if(appendLine) appendLits.push(appendLine); bakedPids.push(pid); }
   }
   OVR.forEach((o,pid)=>{
-    if(o.add){ if(!ovrIsStatic(o)){ dynKept++; return; }
+    if(o.add){ if(!ovrBakeable(o)){ dynKept++; return; }
       appendLits.push(partialLine(byPid.get(pid)||partialFromOverride(pid,o))); bakedPids.push(pid); return; }
     if(o.removed){ excludePid(pid,null); return; }
-    if(!ovrIsStatic(o)){ dynKept++; return; }
+    if(!ovrBakeable(o)){ dynKept++; return; }
     const p=byPid.get(pid); if(p) excludePid(pid,partialLine(p));
   });
   const out=lines.map((ln,i)=>{
@@ -1431,7 +1476,8 @@ function onMIDI(ev){ const [st,d1,d2]=ev.data, cmd=st&0xf0;
 function slider(id,out,fmt,cb){ const s=el(id),o=el(out); const u=()=>{o.textContent=fmt(+s.value);cb&&cb(+s.value);}; s.addEventListener("input",u); u(); }
 function partialLine(p,ampScale){
   const amp=ampScale==null?p.amp:p.amp*ampScale, ph=+(p.phase*180/Math.PI).toFixed(1);
-  let line=(+p.ratio.toFixed(5))+" : "+(+amp.toFixed(5));
+  const rField = rIsBakeableExpr(p) ? p.dyn.r.expr : (+p.ratio.toFixed(5));
+  let line=rField+" : "+(+amp.toFixed(5));
   if(p.phase||p.adsr) line+=" : "+ph;
   if(p.adsr){ const e=partADSR(p); line+=" : "+(+e.a.toFixed(4))+" : "+(+e.d.toFixed(4))+" : "+(+e.s.toFixed(4))+" : "+(+e.r.toFixed(4)); }
   return line;
@@ -1474,6 +1520,11 @@ function init(){
       const step=(+inp.step||1)*(e.shiftKey?10:1), base=+inp.value||0, v=+(base+(e.deltaY<0?step:-step)).toFixed(6);
       inp.value=v; commit(); },{passive:false}); });
   el("ovrClearAll").onclick=()=>{ selectedPartials().forEach(p=>OVR.delete(p.pid)); el("ovrErr").textContent=""; applyGrammar(); };
+  el("ovrDrift").onclick=()=>{ const sel=selectedPartials(); if(!sel.length)return;
+    // drift centered on each partial's base ratio r; phase decorrelated by n when available
+    const hasN=sel.every(p=>p.idx&&p.idx.vars.includes("n"));
+    const tmpl="r*2**(15*sin(tau*3*t+"+(hasN?"n":"r")+")/1200)"; // 15¢ depth, 3 Hz rate — edit inline
+    el("ovrRExpr").value=tmpl; commitField("rExpr",tmpl); };
   el("grammar").addEventListener("keydown",e=>{ if(e.ctrlKey&&e.key==="Enter"){e.preventDefault();applyGrammar();} });
   slider("master","masterV",v=>v.toFixed(2),v=>{if(master)master.gain.value=v;});
   slider("atk","atkV",v=>v.toFixed(2)); slider("dec","decV",v=>v.toFixed(2));
