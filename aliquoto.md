@@ -109,9 +109,10 @@ adsr : A(r) : D(r) : S(r) : R(r)    # per-partial ADSR as functions of ratio
 `X pitch Hz` keyfollow reference) · `t` (seconds since note-on; only where noted).
 
 ### Functions / constants / operators
-`prime fib sin cos tan exp log sqrt pow abs mod clip01 adsr(t,a,d,s,r)` ·
+`prime fib rnd sin cos tan exp log sqrt pow abs mod clip01 adsr(t,a,d,s,r)` ·
 conditionals `iff(c,a,b) odd even step between clamp not` · comparators
 `< > <= >= == != && ||` (1/0) · consts `pi e phi tau` · power `^`.
+`rnd()` returns 0..1; `rnd(max)` and `rnd(lo,hi)` scale that random draw.
 
 ---
 
@@ -256,6 +257,30 @@ non-idle) and canvas width can read 0 in headless eval — test via
    (Single + group x/y drag already live; this adds quantized targets.)
 6. **Extras** — solo/mute selection audition · group ops (scale amps, transpose ·k,
    stretch ^k, scatter ±¢) · copy-selection-as-grammar · ADSR hover ghost.
+
+### Dropped sound as f(t) — sound-as-modulator (ideation 2026-07-10, unbuilt)
+Drop a soundfile / noise source; it becomes a **value source over time** in the
+grammar, never audio. Suite framing (see `suite.md`): real sound as *modulator*,
+third role beside substrate (Horn of Plenty) and excitation (Cella drive/Fano).
+The sines stay pure sines by construction — the file is dereferenced, not mixed.
+Aliquoto-specific notes:
+
+- **Per-partial `amp(t)`** from an envelope follower; each partial may bind a
+  different dropped file. Slots into the existing multiply order as another
+  gain-like factor (`a · env(r) · adsr(t) · gain(t) · file-follower`) — or just
+  as a new function in `gain(t)` scope.
+- **Keyfollow vocoder mode:** partial's amp = band energy at *its own* `hz` in
+  the file. Partials keyfollow → analysis bands move with the played note. A
+  ratio-defined vocoder; unique to additive (subtractive can only filter the
+  file, additive dereferences it per-partial).
+- **General f(t):** same follower value usable in `r(n,t)` (pitch waver depth),
+  drift amount, anything with `t` in scope.
+- Grammar sketch (decide at build): dropped files get names in expression scope,
+  e.g. `file1(t)` = follower value, `file1(hz,t)` = band energy at hz. Rate:
+  per-block (cella-dynamics grain) is likely enough; audio-rate is a later call.
+- Negative-filter suite idea (see `suite.md`) needs nothing new here: an
+  `env : f(r)` with a dip already *is* the keyfollowing notch, because aliquoto's
+  lines are discrete.
 
 ### Then (carried forward)
 Scala `.scl/.kbm` import · quartertone split-key piano · performance presets

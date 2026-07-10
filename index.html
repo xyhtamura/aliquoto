@@ -26,7 +26,7 @@
   --panel:#d7e3a2; --panel2:#bfcc83; --raise:#e2ecad;
   --edge:#58663f; --edge2:#263425; --ink:#101b15; --dim:#344333; --faint:#66724d;
   --lcd-bg:#c6d28e; --lcd:#102318; --lcd-dim:#415638;
-  --cyan:#005e68; --violet:#382d6a; --magenta:#8c1748; --amber:#8a4b12; --lime:#284b19;
+  --cyan:#0a4b52; --violet:#382d6a; --magenta:#85204a; --amber:#87501e; --lime:#2b4a1e;
 --disp: "Seona-DEMO", "Space Grotesk", system-ui, sans-serif; 
   --mono: "Space Mono", ui-monospace, monospace; 
   --lcdf: "VT323", monospace;
@@ -159,10 +159,20 @@ input[type=range]::-webkit-slider-runnable-track{
   box-shadow:inset 0 1px 4px #32412688, 0 1px 0 #edf5bd;
 }
 input[type=range]::-webkit-slider-thumb{
-  appearance:none; -webkit-appearance:none; width:13px; height:23px; margin-top:-8px;
-  border:1px solid #07110b; border-radius:2px;
-  background:linear-gradient(90deg,#17251c 0 2px,#8c1748 2px 5px,#d4df9b 5px 7px,#8c1748 7px 11px,#17251c 11px 100%);
-  box-shadow:inset 0 1px 0 #e2ecad, 0 0 0 1px #edf5bd66, 0 2px 5px #101b1577;
+  appearance:none;
+  -webkit-appearance:none;
+  width:11px;
+  height:25px;
+  margin-top:-9px;
+  border:1px solid #07110b;
+  border-radius:6px 6px 2px 2px;
+  background:
+    linear-gradient(90deg, transparent 45%, var(--cyan) 46% 54%, transparent 55%),
+    linear-gradient(180deg,#2a3b2d 0%,#101b15 55%,#8c1748 56%,#5b102f 100%);
+  box-shadow:
+    inset 0 1px 0 #dfe9aa,
+    0 0 0 1px #edf5bd66,
+    0 2px 6px #101b1588;
 }
 input[type=range]:hover::-webkit-slider-thumb{ filter:brightness(1.12); box-shadow:inset 0 1px 0 #e2ecad, 0 0 0 2px #8c174844, 0 2px 5px #101b1577 }
 input[type=range]:focus::-webkit-slider-runnable-track{ border-color:var(--magenta); box-shadow:0 0 0 2px #8c174833, inset 0 1px 4px #32412688 }
@@ -320,7 +330,7 @@ body.iface-full{ overflow:hidden }
     <div class="help">
       <b>partial</b> <code>r : a : p°</code> or <code>r:a:p:A:D:S:R</code> · <b>sum</b> <code>sum n=1..N : r(n,t) : a(n) : p(n)</code> (+ optional <code>:A:D:S:R</code>) · <b>env</b> <code>env : f(r)</code> · <b>gain</b> <code>gain : f(t,r,hz,f0,a)</code> · <b>adsr</b> <code>adsr : A(r) : D(r) : S(r) : R(r)</code>.<br>
       in <b>a</b>/<b>p</b>/<b>env</b>/<b>adsr</b>/<b>where</b> you also have <code>r</code> (this partial's ratio), <code>hz</code> (=r·X), <code>f0</code> (=X). Use <code>t</code> in <b>r</b>/<b>env</b>/<b>gain</b> for time motion; <code>r(t)</code> must be positive at <code>t=0</code> (use <code>t+1</code>). gain/env time functions are clipped to <code>0..1</code> then multiplied by <code>a</code>. <b>conditionals</b> <code>iff(cond,a,b)</code> <code>odd(n)</code> <code>even(n)</code> <code>step</code> <code>between</code> <code>clamp</code> · compare <code>&lt; &gt; &lt;= &gt;= == != &amp;&amp; ||</code> (true=1).<br>
-      fns <code>prime fib sin cos exp log sqrt pow abs mod clip01 adsr</code> · consts <code>pi e phi tau</code> · <code>^</code> power · <code>#</code> comment. Drag a partial = amp; <b>bake</b> writes it back as math.
+      fns <code>prime fib rnd sin cos exp log sqrt pow abs mod clip01 adsr</code> · consts <code>pi e phi tau</code> · <code>^</code> power · <code>#</code> comment. Drag a partial = amp; <b>bake</b> writes it back as math.
     </div>
 
     <div class="divider"></div>
@@ -452,9 +462,10 @@ const PRIMES=(()=>{const a=[],lim=4000,s=new Uint8Array(lim).fill(1);
 function prime(n){n=Math.max(1,Math.round(n));return PRIMES[n-1]||PRIMES[PRIMES.length-1];}
 function fib(n){n=Math.max(1,Math.round(n));let a=1,b=1;for(let i=2;i<n;i++)[a,b]=[b,a+b];return b;}
 function clip01(x){return Math.max(0,Math.min(1,isFinite(x)?x:0));}
+function rnd(a,b){if(a==null)return Math.random();if(b==null){b=a;a=0;}return a+Math.random()*(b-a);}
 function adsrShape(t,a,d,s,r){ t=Math.max(0,t); a=Math.max(.0001,a); d=Math.max(.0001,d); s=clip01(s);
   if(t<a)return t/a; if(t<a+d)return 1+(s-1)*((t-a)/d); return s; }
-const MENV={prime,fib,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,log:Math.log,
+const MENV={prime,fib,rnd,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,log:Math.log,
   sqrt:Math.sqrt,pow:Math.pow,abs:Math.abs,floor:Math.floor,round:Math.round,sign:Math.sign,
   min:Math.min,max:Math.max,pi:Math.PI,e:Math.E,tau:2*Math.PI,phi:(1+Math.sqrt(5))/2,
   // conditionals / piecewise
@@ -626,8 +637,9 @@ function clip01(x){return Math.max(0,Math.min(1,isFinite(x)?x:0));}
 const WPRIMES=(()=>{const a=[],lim=4000,s=new Uint8Array(lim).fill(1);for(let i=2;i<lim;i++){if(s[i]){a.push(i);for(let j=i*i;j<lim;j+=i)s[j]=0;}}return a;})();
 function prime(n){n=Math.max(1,Math.round(n));return WPRIMES[n-1]||WPRIMES[WPRIMES.length-1];}
 function fib(n){n=Math.max(1,Math.round(n));let a=1,b=1;for(let i=2;i<n;i++){const c=a+b;a=b;b=c;}return b;}
+function rnd(a,b){if(a==null)return Math.random();if(b==null){b=a;a=0;}return a+Math.random()*(b-a);}
 function adsrShape(t,a,d,s,r){t=Math.max(0,t);a=Math.max(.0001,a);d=Math.max(.0001,d);s=clip01(s);if(t<a)return t/a;if(t<a+d)return 1+(s-1)*((t-a)/d);return s;}
-const WENV={prime,fib,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,log:Math.log,
+const WENV={prime,fib,rnd,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,log:Math.log,
   sqrt:Math.sqrt,pow:Math.pow,abs:Math.abs,floor:Math.floor,round:Math.round,sign:Math.sign,
   min:Math.min,max:Math.max,pi:Math.PI,e:Math.E,tau:2*Math.PI,phi:(1+Math.sqrt(5))/2,
   iff:(c,a,b)=>c?a:b, odd:n=>(Math.round(n)%2!==0)?1:0, even:n=>(Math.round(n)%2===0)?1:0,
@@ -1135,6 +1147,10 @@ function refreshHistUI(){ el("undoBtn").disabled=!HIST.length; el("redoBtn").dis
 let ADD_SEQ=0;
 let OVR=new Map(); // pid -> {add?,removed?,ratio?,amp?,phase?,adsr?:{a,d,s,r},rExpr?,gainExpr?}
 const ADSRFIELDS=["A","D","S","R"];
+function resetOverrides(){
+  OVR.clear(); SEL=new Set(); ADD_SEQ=0;
+  const msg=el("ovrErr"); if(msg) msg.textContent="";
+}
 function selectedPartials(){ return PARTIALS.filter(p=>SEL.has(p.pid)); }
 function dockOverridePanel(){ const dock=el("ovrDock"), card=el("ovrCard"); if(dock&&card&&!dock.contains(card)) dock.appendChild(card); }
 // per-partial substitution: idx vars (n,m…) and base ratio r are CONSTANT per partial,
@@ -1298,7 +1314,7 @@ function tex(expr){ let s=(expr||"").trim(); if(!s)return "";
   s=s.replace(/\babs\s*\(([^()]*)\)/g,"\\left|$1\\right|");
   s=s.replace(/\bprime\s*\(([^()]*)\)/g,"p_{$1}").replace(/\bfib\s*\(([^()]*)\)/g,"F_{$1}");
   s=s.replace(/\bhz\b/g,"\\nu ").replace(/\bf0\b/g,"f_0 ");
-  s=s.replace(/\b(iff|odd|even|step|between|clamp|mod)\b/g,"\\mathrm{$1}");
+  s=s.replace(/\b(iff|odd|even|step|between|clamp|mod|rnd)\b/g,"\\mathrm{$1}");
   s=s.replace(/\bsin\b/g,"\\sin ").replace(/\bcos\b/g,"\\cos ").replace(/\btan\b/g,"\\tan ").replace(/\blog\b/g,"\\ln ");
   s=s.replace(/\bpi\b/g,"\\pi ").replace(/\bphi\b/g,"\\varphi ").replace(/\btau\b/g,"\\tau ").replace(/\binf(inity)?\b/g,"\\infty ");
   s=s.replace(/\^\s*([A-Za-z0-9_.]+)/g,"^{$1}");
@@ -1620,7 +1636,7 @@ function init(){
     Object.keys(presets).forEach(n=>{ const option=document.createElement("option"); option.value=n; option.textContent=n; group.appendChild(option); });
     presetSelect.appendChild(group);
   });
-  const loadPreset=n=>{ pushHist(); el("grammar").value=PRESETS[n]; applyGrammar(); };
+  const loadPreset=n=>{ pushHist(); resetOverrides(); el("grammar").value=PRESETS[n]; applyGrammar(); };
   presetSelect.addEventListener("change",()=>loadPreset(presetSelect.value));
   el("grammar").value=PRESETS["saw ∞"]; applyGrammar(); HIST=[]; refreshHistUI(); // boot preset: no undo entry
   presetSelect.value="saw ∞";
