@@ -13,7 +13,7 @@ and the math is kept visible, not hidden inside an engine.
 *aliquot* = a part contained in a whole an exact number of times (a divisor/multiple);
 also the *aliquot strings* of pianos and harps that ring in sympathetic overtones.
 
-Sibling to **Cycla** (`../tabota/cycla_builder.html`): Cycla is a tuning of *meter*
+Sibling to **Cycla** (`../tabota/cycla/builder/index.html`): Cycla is a tuning of *meter*
 (recursive subdivision); aliquoto is a tuning of *timbre* (the sum of sines). Same
 counter-poetics — both work the interstitial positions a standard grid disallows
 (12-TET for pitch, integer harmonics for timbre).
@@ -282,11 +282,68 @@ Aliquoto-specific notes:
   `env : f(r)` with a dip already *is* the keyfollowing notch, because aliquoto's
   lines are discrete.
 
+### Roil-style `noise()` — folds into suite arc 1.1 (penciled 2026-07-13)
+In-house prior art: `../xyhtamura.github.io/roil/` — single-osc Web Audio toy,
+1D Perlin noise drives four params (pitch within a bounded range, filter cutoff,
+Q, amp), each with independent **depth + rate**, ticked at rAF, smoothed via
+`setTargetAtTime(…, 0.01)`. Its noise handling is exactly the "smoothable/
+band-limited companion to `rnd()`" that arc 1.1 asks for.
+
+Plan: add seeded 1D Perlin **`noise(x)` → −1..1** to `MENV` (identical fn on
+main thread and in the worklet; per-note seed for reproducibility). Then
+Roil-parity is pure grammar, no engine change beyond the one function:
+
+- pitch drift, decorrelated per partial (beats Roil's single osc):
+  `sum n=1..24 : n*(1+.01*noise(2*t+n*13)) : 1/n`
+- amp noise: `gain : clip01(.19*(1+.87*noise(34.8*t)))`
+- Roil's filter/Q noise has no target here (no filter, by design). Spectral
+  analogue: `gain : clip01(1-.5*abs(noise(t))*r/16)` — a "breathing lowpass"
+  carved by amp-vs-ratio, keeping the core pure.
+- QoL: give the `drift↯` chip a noise-based template variant beside the sine one.
+
+Osc-path tick is 33 ms ≈ Roil's rAF tick — control-rate parity is fine.
+
+### VST port (penciled 2026-07-13; aliquoto first, cella/moire reuse skeleton)
+Sequencing decision: **web arcs first (1.1 → 1.2 → 1.3), then port.** Everything
+in those arcs is engine/DSL-level; on the WebView+QuickJS route below, features
+added on web carry into the plugin at ≈ zero extra cost — only the small C++
+sine-bank port grows. Porting first would mean double-implementing every later
+feature (web + C++). Only pre-port design constraint: the state chunk must
+anticipate sample references once file-drop (1.2) exists — decide **embed vs
+path-reference** for dropped files before freezing state format. The cella zero
+(1.3) is pure DSP and ports trivially whenever.
+
+Order of work:
+
+1. **Engine extraction** (prereq; a web-side win regardless): partial model,
+   ADSR, drift, voice alloc, worklet DSP in one DOM-free file. Arcs 1.1–1.3
+   should land in this core, not the page.
+2. **Framework: JUCE 8 + WebView** (`WebBrowserComponent` hosts real HTML/CSS/JS
+   as the plugin GUI) — the existing UI ports near-verbatim, params sync over the
+   JS bridge. The "CSS problem" disappears on this route. Alternatives: iPlug2
+   (also web UI, lighter, thinner docs), Cmajor (fastest prototype, young).
+3. **Worklet DSP → C++** (~100 lines: sine bank, per-partial ADSR, drift LFO).
+4. **DSL in C++:** embed QuickJS/duktape for exact `compileExpr` semantics —
+   formulas eval at note-start/control-rate only, perf fine. (exprtk = faster
+   but grammar parity must be re-verified.)
+5. **Param model:** fixed automatable floats (master, ADSR×4, drift×2, X ref,
+   Σ ceil); grammar text + OVR + preset bank = state chunk, not params.
+6. **Drop** WebMIDI, .mid player, WAV export — host owns those.
+7. **Validate:** `pluginval`, test Reaper + Ableton + FL.
+
+**Asset printer (fallback only, if classic JUCE UI instead of WebView):**
+an HTML/CSS/JS page that renders each control state and exports assets —
+knob/slider **filmstrips** (N rotation frames stacked vertically, JUCE
+convention), 9-slice panel textures, @1x/@2x, via `canvas.toBlob` or Playwright
+screenshots. Better: export **SVG** — JUCE `Drawable` loads it natively, and the
+LCD skin is flat CSS gradients, which compress to SVG cleanly and stay
+resolution-independent. Not needed on the WebView route.
+
 ### Then (carried forward)
 Scala `.scl/.kbm` import · quartertone split-key piano · performance presets
 {surface + tuning + range} · per-note X evaluation (timbre as function of pitch) ·
 BroadcastChannel live bridge to TaBoTa Roll · resynthesis (FFT → grammar) ·
-VST via iPlug2/JUCE + WebView.
+VST — see "VST port" section above.
 
 ### Language notes (current semantics)
 Multiply order per partial: `a (a_max) · env(r) · adsr(t) · gain(t)`.
