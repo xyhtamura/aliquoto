@@ -349,6 +349,128 @@ played Hz — so an ODE member is closer to the existing grammar than it looks. 
 place it breaks is a *driven* memristive element with its own relaxation constant;
 that tension is earmarked in `../physics/GAPS.md`.
 
+### Member 5 — architecture (decided 2026-08-04)
+
+**The unit is the stage.** Not a free netlist, and not a rack of modules with ins
+and outs. Both were considered and both are wrong for different reasons: a free
+netlist does not reliably produce sound and has no notion of pitch, while a module
+rack is modular synthesis rather than circuit emulation — a crowded space (VCV,
+Softube, Cherry Audio) with no impossible-component axis, because it has no
+components.
+
+The trio already solved the underlying problem. Aliquoto accepts nonsense in the
+grammar and still produces sound, not because the grammar is restricted but because
+the topology is fixed and the output stage is guaranteed: sum of N sines → ADSR →
+out. Cella: drive → resonator bank → out. Moire: operators → phase → carrier → out.
+The rule generalizes as **fix the topology of the guarantee, free the physics
+inside it.** A netlist fixes nothing; a module rack fixes the wrong layer.
+
+**What a stage is.** Declared state variables, a `dx/dt` expression, an output
+expression, typed ports. Virtual-analog practice already works at this level —
+nobody SPICE-simulates a Minimoog; the ladder is modelled as a 4-pole nonlinear
+ODE, the VCO as a charge/discharge core with a comparator, the clipper as a
+memoryless nonlinearity. It is also the level at which published models exist to
+copy from.
+
+This dissolves the existing-versus-new question instead of answering it. Existing
+synths are **entries in the stage library**; new ones are edits to those entries,
+new stages, or chains no hardware built. There is no mode switch, because the
+library is presets over the grammar — the relationship the trio already has.
+
+Grammar sketch (shape only, not settled syntax):
+
+```
+stage saw : pitched
+  ẋ    : 2                                  # τ = f₀·t, so this is exactly f₀
+  x    : wrap(-1, 1)
+  out  : x
+
+stage ladder : absolute
+  ẏ(n) : ω · (tanh(u(n)) − tanh(y(n)))      n = 1..4
+  u(1) : in − k·y(4)
+  out  : y(4)
+
+patch : saw → ladder(ω: 4·f₀, k: 3.9) → out
+```
+
+Note what falls out: `n = 1..4` is the pole count, so `n = 1..11` is an eleven-pole
+ladder and no feature was added to allow it. The impossible axis is **structural**
+rather than component-value, which is the more interesting kind — SPICE's version
+of impossible is a 3-farad capacitor, ours is a filter whose cutoff is a memristive
+state that forgets over four seconds.
+
+**`pitched` versus `absolute` is the crux of the design.** In hardware, pitch is a
+CV into an exponential converter: fragile, needs tuning, and a circuit you invent
+will be out of tune. Here f₀ enters as the **time-scale** — pitched stages
+integrate in τ = f₀·t, absolute stages in real time. You cannot build an out-of-tune
+oscillator, which is what makes free circuit-building playable rather than a physics
+toy. The per-stage choice is also the keyfollow question the whole suite is built
+on, so it is a musical control and not a technicality: a ladder set `pitched` tracks
+the note, the same ladder set `absolute` is a fixed formant.
+
+**Reliability comes from the seam, not from restricting the graph.** Four
+mechanisms, in order of what they buy:
+
+1. **Fixed final path** — whatever the network does, the last stages are
+   DC block → soft limit → ADSR gate → out. Removes most silence-and-bang failures.
+2. **Normalled inputs** — every port declares a default, Eurorack-style, so a
+   half-built circuit still sounds. Highest reliability per unit of effort.
+3. **Typed ports** — `audio` / `cv` / `gate` / `state`. Cross-type connections are
+   allowed but pass a declared normalizer, so routing a memristor's internal `x`
+   into a cutoff does not detonate. Type-directed defaults make free patching safe;
+   restricting the patch does not.
+4. **Pre-flight at apply time** — run the network at reduced rate over ~50 ms of
+   simulated time with a test impulse and report before anything is heard:
+   *self-oscillating at 340 Hz* · *DC offset 0.3, blocked* · *diverged at t = 12 ms,
+   reduce k*. The circuit analogue of aliquoto's spectrum readout: the instrument
+   says what was built. A status line, never a refusal.
+
+Feedback loops need an explicit unit delay. Moire settled that rule already
+(previous-sample feedback for self/forward references) — reuse it verbatim.
+
+**Rejected: MNA/SPICE as the substrate.** Nonlinear MNA needs Newton iteration per
+sample per voice, out of reach polyphonic at 48k with oversampling in a worklet; it
+carries no notion of pitch, so nothing keyfollows; and it competes on the ground
+this doc already concedes to Diva and PSpice-grade modelling. It returns
+legitimately in one place — **a netlist at the leaf**, a small schematic compiled
+down to a stage ODE at apply time, the same way the DSL compiles to a JS function.
+That serves "type in this actual schematic" without paying MNA per sample. A real
+feature, and a later one.
+
+**Costs, stated plainly.** Nonlinear stages at audio rate need 4–8× oversampling —
+declare it per stage so only nonlinear stages pay. Integration is fixed-step RK4 for
+most things, topology-preserving trapezoidal for filters, with per-stage declared
+state bounds (the memristor window function generalizes: a stage declares its state
+manifold). And **the library is a reading job, not a coding job** — typing in a
+Minimoog requires someone to have derived the ladder ODE, so start where published
+VA models exist (Moog ladder, Sallen-Key/MS-20, diode ladder, wavefolder, CEM3340
+core) and treat obscure circuits as research rather than backlog. This is the
+largest member by a distance, and the DOM-free engine extraction the VST port needs
+is a prerequisite here too; sequence them together.
+
+The memristor drops in as one more stage with no special-casing, which is some
+evidence the decomposition is right.
+
+Build order:
+
+1. Stage grammar + fixed output path + `pitched`/`absolute`, with two stages only
+   (saw core, ladder). Plays a Minimoog-ish monosynth and proves the seam.
+2. Pre-flight analyzer.
+3. Grow the library — diode clipper, SVF, CEM3340 core, divider chain (the
+   Novachord's actual mechanism).
+4. Open the stages: tier-2 editing, so `ladder` is not a black box.
+5. Memristor stage.
+6. Netlist at the leaf, if still wanted.
+
+Text is authoritative and the block diagram is a view drawn *from* the text. Do not
+build a patch-cable GUI first — moire established that the equation can be the whole
+interface.
+
+Open: the taxonomy word. *Grown* is reserved for the nonlinear-ODE summit, and
+member 5 is the on-ramp to it rather than a separate animal, so either they share
+the word or member 5 is **run** — the spectrum is what a system did, not what a text
+specified.
+
 Framing that ties it together: each tool takes one axis a standard imposes as a grid
 and lets you work the interstitial positions the grid forbids — Aliquoto the spectrum
 grid, Cella the resonance grid, Moire the interference grid, and (via the shared
@@ -362,6 +484,21 @@ tuning) the pitch grid. New members add new axes, not new engines.
 ---
 
 ## Log
+
+**2026-08-04 — Claude Code.** Ideation only, no code. Settled **member 5's
+architecture** and wrote it up as its own section: the unit is the **stage** (state
+variables + `dx/dt` + output + typed ports), not a free netlist and not a module
+rack. Existing synths become library entries, new ones become edits to them, so
+there is no existing-versus-new mode switch. The load-bearing declaration is
+`pitched` / `absolute` — f₀ enters as the integration time-scale, so no invented
+circuit can be out of tune. Reliability comes from a fixed final path, normalled
+inputs, typed ports, and an apply-time pre-flight report, rather than from
+restricting what can be patched. MNA/SPICE rejected as the substrate with reasons,
+and kept only as a possible leaf compiler.
+Undone: nothing built, and no syntax settled — the grammar block in that section is
+shape only. The named prerequisite is the DOM-free engine extraction, shared with
+the VST port. Next decision for whoever picks this up: the taxonomy word (share
+*grown* with the summit, or use *run*).
 
 **2026-08-03 — Claude Code.** Ideation only, no code. (a) Added the **memristive
 element** as a new entity class under Future directions — 1/f nonlinearity as
