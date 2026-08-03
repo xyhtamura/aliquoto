@@ -45,15 +45,19 @@ The family is sorted by **how a spectrum comes to be**:
 
 Reserved / adjacent members:
 
-- **Horn of Plenty** — *harvested*. **Exists, but as a tool, not a synth:**
-  `../hindcasts/horn-of-plenty/`, an offline stationarizer (scrap → yardage,
-  *felt not weave*). The suite-member idea survives as an *ingredient*: borrow its
-  engine to stationarize samples into playback substrate (one candidate idea for
-  member 4, the mellotron-like synth — see Future directions).
 - **Fano** — the **chimera**: a source–filter marriage (a broadband substrate
   feeding a Cella-style driven resonator — discrete lines interfering with
   a driven continuum). Cella already exposes an unfilled drive-buffer input port for
   exactly this.
+
+**Not a member — Horn of Plenty** (`../hindcasts/horn-of-plenty/`)
+*(removed from the taxonomy 2026-08-03).* It was once penciled in as *harvested*,
+but it does a different job: an offline stationarizer (scrap → yardage, *felt not
+weave*), a batch tool with no voice seam, no grammar, and nothing that keyfollows.
+It is not a synth in this family and the taxonomy slot it held was never real.
+What survives is narrower and more useful — its engine is a **candidate engine for
+member 4**, the sample/pitch-shift instrument, where turning a sample into endless
+stationary substrate is exactly the job. See Future directions.
 
 ## The shared engine
 
@@ -91,6 +95,11 @@ as *life* rather than hash.
    evaluated per block. Seeded rnd, smooth/band-limited rnd, file follower, and
    band-energy lookup all register into the same seam — build the plumbing once.
    Patches become reproducible *before* they become file-dependent.
+   In-house prior art for the smooth companion: **Roil**
+   (`../xyhtamura.github.io/roil/`) — 1D Perlin drives pitch/cutoff/Q/amp, each
+   with independent depth + rate, control-rate ticked and smoothed. Plan: seeded
+   Perlin `noise(x)` → −1..1 in every tool's expression scope (detail in
+   `aliquoto.md` → "Roil-style noise()").
 2. **1.2 — file drop.** Aliquoto first (richest gain infra; keyfollow vocoder is
    the flagship claim); cella's drive port in the same arc (seam already designed —
    a dropped file is the first guest, no need to wait for a harvested member);
@@ -101,6 +110,27 @@ as *life* rather than hash.
 
 One dropped file across all three tools = the taxonomy demo: aliquoto
 *dereferences* it, cella is *rung* by it, moire *weaves* with it.
+
+### VST port (penciled 2026-07-13; after the 1.x arcs)
+The trio becomes plugins **after** arcs 1.1–1.3 land on web — those arcs are all
+engine/DSL-level, and the chosen route makes web-first features nearly free to
+carry over. Porting first would force double-implementation of every later
+feature. Order: **aliquoto first** (richest engine, sets the skeleton), then
+cella and moire reuse it — same consequence as the shared-engine rule: new
+members are new definitions, and now new plugins are new definitions too.
+
+Route (full steps in `aliquoto.md` → "VST port"):
+
+- **JUCE 8 + WebView GUI** — each tool's single-file HTML/CSS skin ports
+  near-verbatim as the plugin UI; no asset baking. (Fallback if classic JUCE UI
+  ever needed: an HTML asset-printer page exporting filmstrips/SVG — penciled in
+  `aliquoto.md`.)
+- **DSP → C++** (small: sine bank / resonator bank / PM operators per tool);
+  **DSL via embedded QuickJS** for exact grammar parity.
+- **Prereq for all three:** engine extraction — DOM-free core file per tool,
+  which is where 1.1–1.3 should land anyway.
+- **One pre-port constraint:** plugin state chunk must anticipate dropped-file
+  references from 1.2 (embed vs path-reference — decide before freezing format).
 
 ### Shared — dropped sound as f(t) (Aliquoto, Moire; ideation 2026-07-10)
 Let a soundfile (or live noise source) be dropped into the instrument — used not
@@ -155,20 +185,138 @@ Ideation findings (detail in `../cella/cella.md`):
   no env(r) can reach them, so a series zero after the sum is the only way to
   sculpt woven lines. Same entity, three different depths of necessity.
 
+### Shared — the memristive element (new entity class; ideation 2026-08-03)
+
+A **memristor** in the grammar: not one more component for member 5's netlist, but
+a new *entity class* usable in the shipped trio, in the same way the zero (1.3) is
+a new entity rather than a parameter setting.
+
+Chua deduced the memristor in 1971 from the symmetry of v, i, q, φ — a fourth
+relation that *had* to exist — and matter turned up to match 37 years later. That
+is this suite's own thesis in miniature, math first and physicality afterward,
+which is a reason to want it here beyond what it does.
+
+What it does that nothing currently in the grammar does:
+
+- **Its nonlinearity scales as 1/f, by physics rather than by mapping.** The state
+  integrates current, so under a drive at frequency *f* the state excursion goes as
+  amplitude/*f*. High frequency → the state barely moves → memristance is nearly
+  constant → a linear resistor. Low frequency → the state sweeps its range → hard
+  nonlinearity. This is the inverse of ordinary audio distortion, and it means a
+  memristive element **keyfollows by construction**: low notes distort, high notes
+  pass clean, and no keyfollow law was written. Amplitude enters the same way, so
+  velocity becomes a physical timbre axis rather than a mapped one.
+- **It is the first genuinely path-dependent state in the grammar.** `r(n)`, `a(n)`,
+  `p(n)`, `gain(t)` are memoryless — evaluated fresh. `rnd()` is memoryless. Roil
+  noise is smooth but externally driven. A memristor's value depends on everything
+  that has passed through it: don't reset the state between notes and a legato
+  phrase wears the element differently than a staccato one.
+- **Real devices come with a forgetting time constant** (diffusive/volatile
+  memristors relax spontaneously; neuromorphic work uses this as short-term
+  plasticity). Exposed as one parameter it sweeps continuously — µs: nothing, a
+  resistor · ms: per-cycle waveshaper, period-locked · 0.1–2 s: note- and
+  phrase-level timbre drift · minutes: the instrument changes across a
+  performance. One knob spanning "waveshaper" to "the instrument remembers the
+  set."
+
+Taxonomy word, if it ever becomes its own member: **worn** — the spectrum is the
+wear pattern.
+
+Per-sibling placement (retrofittable into the trio, does not wait on member 5):
+
+- **Aliquoto — one memristor per partial.** Each partial's own sine drives its own
+  element, so wear ∝ 1/(`r(n)`·f₀). Upper partials wear less *automatically*; the
+  spectrum tilts and dulls with playing, and the tilt keyfollows. Another
+  additive-only trick in the same family as the keyfollow vocoder: a subtractive
+  synth can only put one nonlinearity on the bus, additive gives every partial its
+  own history.
+- **Cella — memristive Q or center**, driven by the resonator's own output.
+  Amplitude-dependent detune that recovers: the gong/tam-tam behaviour (pitch drops
+  when struck hard, creeps back) that a linear resonator bank structurally cannot
+  produce. Self-limiting oscillation comes free.
+- **Moire — memristive modulation index.** The weave tightens as energy accumulates
+  and relaxes when playing stops. Index-with-history, which no `index(t)`
+  expression can be, because it depends on what was played.
+
+Implementation is small. The standard model is two lines — `v = M(x)·i`,
+`ẋ = μ·f(x)·g(i)`, with HP's `M(x) = R_on·x + R_off·(1−x)`, x ∈ [0,1]. The window
+functions (Joglekar `1−(2x−1)^2p`, Biolek's direction-dependent one, Prodromakis)
+are single expressions — exactly the shape the DSL already eats, and the window is
+where "physically impossible" lives. One stiff-ish 1D ODE per element per sample;
+RK2 or trapezoidal in the worklet; tens of elements at 48k is cheap. Cost is
+aliasing: it is an audio-rate nonlinearity, so budget 4–8× oversampling. It fits
+**arc 1.1's registry** cleanly — a memristive element is a name → f(t) with
+internal state, which is the seam being built anyway, and it would be that seam's
+first *stateful* entry.
+
+**Prior art (searched 2026-08-03).** The ingredients exist separately; the
+combination does not appear to.
+
+- **Chua's circuit as a sound source is well-trodden — treat it as prior art, not
+  novelty.** Bilotta/Pantano, "Sound and Music from Chua's Circuit" (*J. Circuits
+  Syst. Comput.*, 1993) and "Musical Signals from Chua's Circuit" (*IEEE TCAS-II*);
+  Rodet, "Interactive exploration of a chaotic oscillator for generating musical
+  signals in real-time concert performance" (*J. Franklin Inst.*, 1994) — that last
+  is the **nearest** prior art to the bifurcation-parameter idea below, because it
+  is explicitly interactive parameter-space traversal in performance. Also
+  `chaoscillation`, a Max/MSP Chua oscillator (2015).
+- **Memristor music exists, but at the hardware-substrate and compositional level,
+  not as audio-rate timbre.** Gale, Adamatzky, Miranda et al. on *Physarum
+  polycephalum* memristors: "Physarum-Based Memristors for Computer Music" (2015),
+  "BioComputer Music: Generating Musical Responses with Physarum-Based Memristors"
+  (2016), "Physarum Inspired Audio: From Oscillatory Sonification to Memristor
+  Music" (2017), and "Beyond Markov chains, towards adaptive memristor
+  network-based music generation" — living slime-mould memristors used as an
+  unconventional-computing substrate generating *note-level responses*, replacing
+  Markov chains. Different layer of the stack entirely.
+- **Engineering literature has the pieces**: memristor emulator circuits
+  demonstrated to ~16 kHz, memristive Chua oscillators, and — directly useful —
+  work characterising the harmonic content memristive hysteresis produces
+  ("The Fourier signatures of memristive hysteresis", arXiv 2010.01313; asymmetric
+  passive intermodulation of memristors, *AIP Advances* 2016). Read these before
+  building; they say what the distortion actually sounds like.
+- **Not found**: any memristor as a simulated audio-rate spectral element inside a
+  synthesizer's own definitional grammar — no DAFx/virtual-analog treatment, no
+  plugin, no Eurorack module. Nothing per-partial. Nothing ratio-defined or
+  keyfollowing. Nothing using the relaxation constant as a memory axis.
+
+Caveat worth keeping in the file: **negative search results are weak evidence.**
+The honest claim is that the combination is unattested in the places searched, not
+that it is unprecedented. Re-check before making a novelty claim in public copy.
+
 ### Members 4–5 — the next two synths (unnamed, ideation 2026-07-10)
 A different register from the digital-first trio; same engine, new definitions:
 
-4. **Mellotron-like** (no name yet). Mathematical definitions operating over
+4. **Mellotron-like / sample-and-pitch-shift** — candidate name **Anexacta**
+   *(unconfirmed, penciled 2026-08-03)*. Mathematical definitions operating over
    sampled material rather than pure sines — pushing what a sampler/mellotron is,
-   the way the trio pushes additive/resonant/FM. One candidate ingredient (of
-   several): Horn of Plenty's stationarizer engine
-   (`../hindcasts/horn-of-plenty/`) to turn a sample into endless stationary
-   playback substrate.
-5. **Vintage synth simulator** (no name yet). *Not* faithful recreation — u-he
+   the way the trio pushes additive/resonant/FM. **Horn of Plenty's stationarizer
+   engine** (`../hindcasts/horn-of-plenty/`) is the leading candidate engine: turn
+   a sample into endless stationary playback substrate. This is the only role
+   Horn of Plenty has in the family — an engine to borrow here, not a member (see
+   above).
+5. **Circuit-physics synth** (no name yet). *Not* faithful recreation — u-he
    Diva, PSpice-grade modelling, the Novachord/Solovox VSTs already own that
    ground. Instead: import the **physics of circuits** as the thing that
    determines sound, then let it do what hardware physically can't — component
    values, topologies, operating points no real circuit could hold.
+
+   **The memristor is the load-bearing component here** *(2026-08-03)*, for two
+   reasons. First, it is where "values no real circuit could hold" bites hardest:
+   real devices switch in ms–s with ON/OFF ratios of ~10²–10³, and putting the
+   state timescale *inside the audio band* gives an unmanufacturable device that
+   is still a perfectly well-posed ODE. Unbounded or negative state, `M(q)` written
+   as a grammar expression, a user-writable window function — all free. Second, it
+   supplies a demo patch that is the summit in embryo: **memristive Chua
+   oscillators** are a large, well-mapped literature (3–4D ODEs, double-scroll
+   attractors, period-doubling cascades, continuous spectrum).
+
+   The playable idea: **put the keyboard on the bifurcation parameter.** Regions of
+   the parameter space are periodic (pitched), regions are chaotic (noise), and the
+   boundaries are period-doubling cascades; playing becomes a traversal of a
+   bifurcation diagram. Nearest prior art is Rodet 1994 (interactive Chua parameter
+   exploration in performance) — which is *exploration*, not a tuned keyfollowing
+   instrument. See prior art above before claiming more than that.
 
 Parked beyond those: a physical-modelling member (string/tube/membrane in the
 grammar idiom), and the deferred summit — the **nonlinear-ODE synth**, "spectrum
@@ -181,6 +329,14 @@ system. So #5 is the *on-ramp*, not a detour: build the circuit-notation synth,
 let "physically impossible values" loosen gradually, and the summit arrives by
 erosion rather than assault.
 
+The rule that makes the summit reachable *(2026-08-03)*: **an autonomous ODE
+keyfollows by time-scaling, not by transposition.** Set dimensionless time
+τ = f₀·t and the whole system's frequency scales exactly while the waveform is
+preserved. That is already the suite's idiom — everything ratio-defined against
+played Hz — so an ODE member is closer to the existing grammar than it looks. The
+place it breaks is a *driven* memristive element with its own relaxation constant;
+that tension is earmarked in `../physics/GAPS.md`.
+
 Framing that ties it together: each tool takes one axis a standard imposes as a grid
 and lets you work the interstitial positions the grid forbids — Aliquoto the spectrum
 grid, Cella the resonance grid, Moire the interference grid, and (via the shared
@@ -190,3 +346,25 @@ tuning) the pitch grid. New members add new axes, not new engines.
 
 *Status: three shipped and stable (2026-07) — the 1.0 trio. Collection
 name/grouping undecided. Next: arc 1.1 (signal-source seam + seeded/smooth rnd).*
+
+---
+
+## Log
+
+**2026-08-03 — Claude Code.** Ideation only, no code. (a) Added the **memristive
+element** as a new entity class under Future directions — 1/f nonlinearity as
+built-in keyfollow, first path-dependent state in the grammar, relaxation constant
+as a memory axis, per-sibling placements, implementation sketch, and a prior-art
+survey. (b) Rewrote member 5 around the memristor and the bifurcation-parameter
+keyboard; added the ODE time-scaling keyfollow rule. (c) **Removed Horn of Plenty
+from the taxonomy** — it is a batch stationarizer, not a synth; it survives only as
+the candidate engine for member 4. (d) Member 4 given candidate name **Anexacta**
+(unconfirmed — confirm or strike). (e) Earmarked one gap in `../physics/GAPS.md`
+(memory vs keyfollow-invariance in a memristive element).
+Verified: prior-art claims come from web search on 2026-08-03 and are recorded with
+that caveat — the "not found" list is unattested, not disproven, and was not
+checked against paywalled DAFx/ICMC/NIME proceedings full text.
+Undone: nothing built. Arc 1.1 is still the next actual work, and the memristive
+element should ride in as that seam's first stateful entry rather than as a
+separate arc. Open question left for the next session: whether the memristor
+becomes its own member (**worn**) or stays a shared primitive across the trio.
