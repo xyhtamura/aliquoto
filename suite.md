@@ -1,10 +1,12 @@
-# The math-synth suite
+# Anexacta — the math-synth suite
 
-*A living overview of the three digital, mathematics-first synthesizers built so
-far, and where the family can go. The collection isn't formally named or grouped
-yet — this doc is the "as a whole" record until that decision is made. Per-tool
-detail lives in each project's own `.md` (`aliquoto.md`, `../cella/cella.md`,
-`../moire/moire.md`).*
+*A living overview of the digital, mathematics-first synthesizers built so far,
+and where the family can go. The collection is named **Anexacta** and is published
+under that name in the portfolio (`../xyhtamura.github.io/index.html`,
+`#anexacta`), described there as "a set of equation-first synthesizers that expose
+spectral structure, tuning, modulation, and feedback as editable mathematics." The
+name covers the trio and any later member. Per-tool detail lives in each project's
+own `.md` (`aliquoto.md`, `../cella/cella.md`, `../moire/moire.md`).*
 
 Shipped (2026-07): **Aliquoto**, **Cella**, **Moire** — each a single self-contained
 `index.html`, each in its own git repo.
@@ -269,6 +271,16 @@ combination does not appear to.
   network-based music generation" — living slime-mould memristors used as an
   unconventional-computing substrate generating *note-level responses*, replacing
   Markov chains. Different layer of the stack entirely.
+  **And the device claim under it has since failed to replicate**: Schmidt,
+  Seyfried, Reutina, Seskir & Miranda, "Electrical characterization of the alleged
+  bio-memristor *Physarum polycephalum*" (*MRS Advances* 10(14), 2025, 1710–1716)
+  found no significant memristive behaviour — elliptical I–V loops from ordinary
+  capacitance, reproducible with resistors and capacitors alone. Miranda, who
+  composed the biomemristor music, is a co-author. Consequence for us: do not cite
+  the *Physarum* lineage as evidence that memristive behaviour is musically
+  established, and keep its provenance separate from Chua's formalism and the
+  solid-state device literature, which the result leaves untouched. Full trail:
+  `../loosethreads/biomemristor-music-and-the-physarum-claim.md`.
 - **Engineering literature has the pieces**: memristor emulator circuits
   demonstrated to ~16 kHz, memristive Chua oscillators, and — directly useful —
   work characterising the harmonic content memristive hysteresis produces
@@ -287,8 +299,8 @@ that it is unprecedented. Re-check before making a novelty claim in public copy.
 ### Members 4–5 — the next two synths (unnamed, ideation 2026-07-10)
 A different register from the digital-first trio; same engine, new definitions:
 
-4. **Mellotron-like / sample-and-pitch-shift** — candidate name **Anexacta**
-   *(unconfirmed, penciled 2026-08-03)*. Mathematical definitions operating over
+4. **Mellotron-like / sample-and-pitch-shift** (no name yet — *Anexacta* is the
+   collection, not this member). Mathematical definitions operating over
    sampled material rather than pure sines — pushing what a sampler/mellotron is,
    the way the trio pushes additive/resonant/FM. **Horn of Plenty's stationarizer
    engine** (`../hindcasts/horn-of-plenty/`) is the leading candidate engine: turn
@@ -344,8 +356,8 @@ tuning) the pitch grid. New members add new axes, not new engines.
 
 ---
 
-*Status: three shipped and stable (2026-07) — the 1.0 trio. Collection
-name/grouping undecided. Next: arc 1.1 (signal-source seam + seeded/smooth rnd).*
+*Status: three shipped and stable (2026-07) — the 1.0 trio, published as
+**Anexacta**. Next: arc 1.1 (signal-source seam + seeded/smooth rnd).*
 
 ---
 
@@ -358,9 +370,15 @@ as a memory axis, per-sibling placements, implementation sketch, and a prior-art
 survey. (b) Rewrote member 5 around the memristor and the bifurcation-parameter
 keyboard; added the ODE time-scaling keyfollow rule. (c) **Removed Horn of Plenty
 from the taxonomy** — it is a batch stationarizer, not a synth; it survives only as
-the candidate engine for member 4. (d) Member 4 given candidate name **Anexacta**
-(unconfirmed — confirm or strike). (e) Earmarked one gap in `../physics/GAPS.md`
+the candidate engine for member 4. (d) Earmarked one gap in `../physics/GAPS.md`
 (memory vs keyfollow-invariance in a memristive element).
+Correction the same day: **Anexacta is the collection name**, already published in
+the portfolio (`#anexacta`) — it was briefly and wrongly penciled here as a
+candidate name for member 4. Member 4 is unnamed. Doc retitled; the "collection
+name undecided" line is gone.
+Also written: `../loosethreads/biomemristor-music-and-the-physarum-claim.md`, a
+paper trail on the *Physarum* biomemristor music lineage and the 2025 paper that
+failed to replicate the underlying device claim.
 Verified: prior-art claims come from web search on 2026-08-03 and are recorded with
 that caveat — the "not found" list is unattested, not disproven, and was not
 checked against paywalled DAFx/ICMC/NIME proceedings full text.
